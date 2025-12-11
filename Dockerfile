@@ -31,7 +31,7 @@ COPY package.json package-lock.json ./
 COPY --from=build /app/dist ./dist
 
 # Copy static assets (if needed)
-COPY src/public ./src/public
+# COPY src/public ./src/public
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \
