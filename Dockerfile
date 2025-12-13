@@ -59,12 +59,12 @@ COPY package.json package-lock.json ./
 # Copy build artifacts from builder stage
 COPY --from=builder /app/dist ./dist
 
-# Copy static assets if they exist (uncomment if needed)
-COPY src/public ./src/public
-
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001 && \
+    adduser -S nodejs -u 1001
+
+# Create public directory structure for static assets
+RUN mkdir -p /app/src/public/Assets && \
     chown -R nodejs:nodejs /app
 
 # Switch to non-root user
