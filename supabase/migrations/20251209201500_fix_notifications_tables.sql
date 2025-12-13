@@ -21,13 +21,27 @@ CREATE TABLE notifications (
   status VARCHAR(10) DEFAULT '0',
   type VARCHAR(50),
   data JSONB,
-  sender_id UUID REFERENCES users(id) ON DELETE SET NULL,
-  receiver_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+  sender_id UUID,  -- FK will be added later when users table exists
+  receiver_id UUID NOT NULL,  -- FK will be added later when users table exists
   payment_id UUID,
   is_read BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Add foreign key constraints only if users table exists
+DO $$
+BEGIN
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'users') THEN
+        ALTER TABLE notifications
+        ADD CONSTRAINT notifications_sender_id_fkey
+        FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE SET NULL;
+
+        ALTER TABLE notifications
+        ADD CONSTRAINT notifications_receiver_id_fkey
+        FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE;
+    END IF;
+END $$;
 
 -- Indexes for user notifications
 CREATE INDEX IF NOT EXISTS idx_notifications_receiver ON notifications(receiver_id);
@@ -38,6 +52,7 @@ CREATE INDEX IF NOT EXISTS idx_notifications_is_read ON notifications(is_read);
 -- RLS for user notifications
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Service role manages user notifications" ON notifications;
 CREATE POLICY "Service role manages user notifications"
     ON notifications
     FOR ALL
@@ -73,6 +88,7 @@ COMMENT ON COLUMN admin_notifications.link IS 'Optional link to related resource
 -- RLS for admin notifications
 ALTER TABLE admin_notifications ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Service role manages admin notifications" ON admin_notifications;
 CREATE POLICY "Service role manages admin notifications"
     ON admin_notifications
     FOR ALL

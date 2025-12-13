@@ -22,7 +22,9 @@ const sanitizeMigrationSql = (sql: string) =>
       /SELECT\s+pg_catalog\.set_config\('search_path'\s*,\s*''\s*,\s*false\);/gi,
       "SELECT pg_catalog.set_config('search_path', 'public', false);"
     )
-    .replace(/CREATE TABLE/gi, 'CREATE TABLE IF NOT EXISTS');
+    .replace(/CREATE TABLE(?!\s+IF\s+NOT\s+EXISTS)/gi, 'CREATE TABLE IF NOT EXISTS')
+    .replace(/CREATE INDEX(?!\s+IF\s+NOT\s+EXISTS)/gi, 'CREATE INDEX IF NOT EXISTS')
+    .replace(/CREATE UNIQUE INDEX(?!\s+IF\s+NOT\s+EXISTS)/gi, 'CREATE UNIQUE INDEX IF NOT EXISTS');
 
 const runWithPostgresClient = async (sql: string) => {
   const databaseUrl = process.env.SUPABASE_DB_URL;
@@ -54,6 +56,13 @@ const runWithPostgresClient = async (sql: string) => {
   try {
     await client.query(safeSql);
     return true;
+  } catch (error: any) {
+    // Ignore duplicate key errors (23505) - this makes migrations idempotent
+    if (error.code === '23505') {
+      logger.warn({ error }, 'Duplicate key error ignored during migration');
+      return true;
+    }
+    throw error;
   } finally {
     await client.end().catch(() => undefined);
   }

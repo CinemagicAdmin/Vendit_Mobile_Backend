@@ -33,12 +33,38 @@ END $$;
 -- ============================================
 -- SEED: Default Categories
 -- ============================================
-INSERT INTO category (category_name, description, created_at, updated_at) VALUES
-('All', 'All Products', NOW(), NOW()),
-('Snacks', 'Snack items', NOW(), NOW()),
-('Drinks', 'Beverages', NOW(), NOW()),
-('Healthy', 'Healthy options', NOW(), NOW())
-ON CONFLICT (category_name) DO NOTHING;
+DO $$
+DECLARE
+  target_table TEXT;
+BEGIN
+  -- Determine which table name exists: 'category' or 'categories'
+  IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'categories') THEN
+    target_table := 'categories';
+  ELSIF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'category') THEN
+    target_table := 'category';
+  ELSE
+    -- Table doesn't exist, skip
+    RETURN;
+  END IF;
+
+  -- Add unique constraint on category_name if it doesn't exist
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.table_constraints
+    WHERE constraint_name = 'category_category_name_key'
+    AND table_schema = 'public'
+    AND table_name = target_table
+  ) THEN
+    EXECUTE format('ALTER TABLE public.%I ADD CONSTRAINT category_category_name_key UNIQUE (category_name)', target_table);
+  END IF;
+
+  -- Insert categories
+  EXECUTE format('INSERT INTO %I (category_name, description, created_at, updated_at) VALUES
+    (''All'', ''All Products'', NOW(), NOW()),
+    (''Snacks'', ''Snack items'', NOW(), NOW()),
+    (''Drinks'', ''Beverages'', NOW(), NOW()),
+    (''Healthy'', ''Healthy options'', NOW(), NOW())
+    ON CONFLICT (category_name) DO NOTHING', target_table);
+END $$;
 
 -- ============================================
 -- NOTE: Products and Machines
