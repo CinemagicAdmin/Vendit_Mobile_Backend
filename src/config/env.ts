@@ -77,7 +77,7 @@ const sanitizeNumberEnv = (value) => {
 const schema = z.object({
   nodeEnv: z.enum(['development', 'test', 'production']).default('development'),
   host: z.string().default('0.0.0.0'),
-  port: z.coerce.number().default(3000),
+  port: z.coerce.number().default(8080),
   supabaseUrl: z.string().url(),
   supabaseServiceRoleKey: z.string(),
   supabaseAnonKey: z.string(),
