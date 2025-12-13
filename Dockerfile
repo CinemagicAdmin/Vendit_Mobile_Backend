@@ -72,8 +72,9 @@ USER nodejs
 
 # Cloud Run sets PORT automatically (defaults to 8080)
 # But allow override for local testing
-ENV PORT=8080
-EXPOSE 8080
+ENV PORT=3000
+ENV HOST=0.0.0.0
+EXPOSE 3000
 
 # Use dumb-init for proper signal handling
 ENTRYPOINT ["dumb-init", "--"]
