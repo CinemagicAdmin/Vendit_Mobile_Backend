@@ -20,37 +20,22 @@ ALTER TABLE IF EXISTS loyality_points RENAME TO loyalty_points;  -- Also fixes t
 -- STEP 2: ADD MISSING COLUMNS TO USERS
 -- ============================================
 
--- Only run if users table exists
-DO $$
-BEGIN
-  IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'users') THEN
-    -- Referral system columns
-    ALTER TABLE users ADD COLUMN IF NOT EXISTS referral_code VARCHAR(20) UNIQUE;
-    EXECUTE 'ALTER TABLE users ADD COLUMN IF NOT EXISTS referrer_user_id BIGINT';
-    ALTER TABLE users ADD COLUMN IF NOT EXISTS referral_rewarded_at TIMESTAMP;
+-- Referral system columns
+ALTER TABLE users ADD COLUMN IF NOT EXISTS referral_code VARCHAR(20) UNIQUE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS referrer_user_id BIGINT REFERENCES users(id) ON DELETE SET NULL;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS referral_rewarded_at TIMESTAMP;
 
-    -- Payment integration columns
-    ALTER TABLE users ADD COLUMN IF NOT EXISTS tap_customer_id VARCHAR(255);
+-- Payment integration columns
+ALTER TABLE users ADD COLUMN IF NOT EXISTS tap_customer_id VARCHAR(255);
 
-    -- Notification columns
-    ALTER TABLE users ADD COLUMN IF NOT EXISTS device_token TEXT;
+-- Notification columns
+ALTER TABLE users ADD COLUMN IF NOT EXISTS device_token TEXT;
 
-    -- OTP verification flag
-    ALTER TABLE users ADD COLUMN IF NOT EXISTS is_otp_verify BOOLEAN DEFAULT FALSE;
+-- OTP verification flag
+ALTER TABLE users ADD COLUMN IF NOT EXISTS is_otp_verify BOOLEAN DEFAULT FALSE;
 
-    -- Create index on referral_code
-    CREATE INDEX IF NOT EXISTS idx_users_referral_code ON users(referral_code);
-
-    -- Add FK after column exists
-    IF NOT EXISTS (
-      SELECT 1 FROM information_schema.table_constraints
-      WHERE constraint_name = 'users_referrer_user_id_fkey'
-      AND table_name = 'users'
-    ) THEN
-      EXECUTE 'ALTER TABLE users ADD CONSTRAINT users_referrer_user_id_fkey FOREIGN KEY (referrer_user_id) REFERENCES users(id) ON DELETE SET NULL';
-    END IF;
-  END IF;
-END $$;
+-- Create index on referral_code
+CREATE INDEX IF NOT EXISTS idx_users_referral_code ON users(referral_code);
 
 -- ============================================
 -- STEP 3: ADD MISSING COLUMNS TO PAYMENTS
@@ -79,26 +64,20 @@ ALTER TABLE loyalty_points ADD COLUMN IF NOT EXISTS metadata JSONB;
 -- STEP 5: CREATE MISSING REFERRALS TABLE
 -- ============================================
 
--- Only create if users table exists
-DO $$
-BEGIN
-  IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'users') THEN
-    CREATE TABLE IF NOT EXISTS referrals (
-        id BIGSERIAL PRIMARY KEY,
-        referrer_user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        referred_user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        referral_code VARCHAR(20) NOT NULL,
-        status VARCHAR(50) DEFAULT 'pending',
-        referrer_points_awarded NUMERIC(12,3) DEFAULT 0,
-        referred_points_awarded NUMERIC(12,3) DEFAULT 0,
-        referrer_rewarded_at TIMESTAMP,
-        referred_rewarded_at TIMESTAMP,
-        created_at TIMESTAMP DEFAULT NOW(),
-        updated_at TIMESTAMP DEFAULT NOW(),
-        UNIQUE(referrer_user_id, referred_user_id)
-    );
-  END IF;
-END $$;
+CREATE TABLE IF NOT EXISTS referrals (
+    id BIGSERIAL PRIMARY KEY,
+    referrer_user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    referred_user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    referral_code VARCHAR(20) NOT NULL,
+    status VARCHAR(50) DEFAULT 'pending',
+    referrer_points_awarded NUMERIC(12,3) DEFAULT 0,
+    referred_points_awarded NUMERIC(12,3) DEFAULT 0,
+    referrer_rewarded_at TIMESTAMP,
+    referred_rewarded_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE(referrer_user_id, referred_user_id)
+);
 
 -- Create indexes - SKIPPED (columns don't exist, will be created in hotfix)
 -- The referrals table uses inviter_user_id and invited_user_id instead
@@ -110,44 +89,40 @@ END $$;
 -- STEP 6: CREATE MISSING USER_LOYALTY_POINTS TABLE
 -- ============================================
 
--- Only create if users table exists
-DO $$
-BEGIN
-  IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'users') THEN
-    CREATE TABLE IF NOT EXISTS user_loyalty_points (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        points_balance NUMERIC(12,3) DEFAULT 0,
-        total_points_earned NUMERIC(12,3) DEFAULT 0,
-        total_points_redeemed NUMERIC(12,3) DEFAULT 0,
-        created_at TIMESTAMP DEFAULT NOW(),
-        updated_at TIMESTAMP DEFAULT NOW(),
-        UNIQUE(user_id)
-    );
+CREATE TABLE IF NOT EXISTS user_loyalty_points (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    points_balance NUMERIC(12,3) DEFAULT 0,
+    total_points_earned NUMERIC(12,3) DEFAULT 0,
+    total_points_redeemed NUMERIC(12,3) DEFAULT 0,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE(user_id)
+);
 
-    -- Create index
-    CREATE INDEX IF NOT EXISTS idx_user_loyalty_points_user ON user_loyalty_points(user_id);
-  END IF;
-END $$;
+-- Create index
+CREATE INDEX IF NOT EXISTS idx_user_loyalty_points_user ON user_loyalty_points(user_id);
 
 -- ============================================
 -- STEP 7: CREATE MISSING AUDIT_LOGS TABLE
 -- ============================================
 
+-- Note: This table may already exist from 20251205000000_create_audit_logs.sql
+-- Use IF NOT EXISTS to avoid conflict
 CREATE TABLE IF NOT EXISTS audit_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    admin_id UUID REFERENCES admins(id) ON DELETE SET NULL,
     action VARCHAR(100) NOT NULL,
-    resource_type VARCHAR(100),
+    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    admin_id BIGINT REFERENCES admins(id) ON DELETE SET NULL,
+    resource_type VARCHAR(50) NOT NULL,
     resource_id VARCHAR(255),
-    description TEXT,
-    ip_address VARCHAR(50),
+    details JSONB,
+    ip_address INET,
     user_agent TEXT,
-    changes JSONB,
-    created_at TIMESTAMP DEFAULT NOW()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Create indexes
+-- Create indexes (IF NOT EXISTS)
 CREATE INDEX IF NOT EXISTS idx_audit_logs_admin ON audit_logs(admin_id);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_resource ON audit_logs(resource_type, resource_id);
@@ -157,76 +132,38 @@ CREATE INDEX IF NOT EXISTS idx_audit_logs_created ON audit_logs(created_at);
 -- STEP 8: CREATE MISSING ACTIVITY_LOGS TABLE
 -- ============================================
 
--- Only create activity_logs if users table exists
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'activity_logs') THEN
-    CREATE TABLE activity_logs (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        user_id UUID,
-        activity_type VARCHAR(100) NOT NULL,
-        description TEXT,
-        metadata JSONB,
-        ip_address VARCHAR(50),
-        user_agent TEXT,
-        created_at TIMESTAMP DEFAULT NOW()
-    );
+CREATE TABLE IF NOT EXISTS activity_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    activity_type VARCHAR(100) NOT NULL,
+    description TEXT,
+    metadata JSONB,
+    ip_address VARCHAR(50),
+    user_agent TEXT,
+    created_at TIMESTAMP DEFAULT NOW()
+);
 
-    -- Create indexes
-    CREATE INDEX IF NOT EXISTS idx_activity_logs_user ON activity_logs(user_id);
-    CREATE INDEX IF NOT EXISTS idx_activity_logs_type ON activity_logs(activity_type);
-    CREATE INDEX IF NOT EXISTS idx_activity_logs_created ON activity_logs(created_at);
-
-    -- Add FK constraint if users table exists
-    IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'users') THEN
-      ALTER TABLE activity_logs
-      ADD CONSTRAINT activity_logs_user_id_fkey
-      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
-    END IF;
-  END IF;
-END $$;
+-- Create indexes
+CREATE INDEX IF NOT EXISTS idx_activity_logs_user ON activity_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_activity_logs_type ON activity_logs(activity_type);
+CREATE INDEX IF NOT EXISTS idx_activity_logs_created ON activity_logs(created_at);
 
 -- ============================================
 -- STEP 9: ADD MISSING COLUMNS TO MACHINES
 -- ============================================
 
--- Add distance field for caching calculated distances (only if table exists)
-DO $$
-BEGIN
-  IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'machines') THEN
-    ALTER TABLE machines ADD COLUMN IF NOT EXISTS distance NUMERIC(10,3);
-  END IF;
-END $$;
+-- Add distance field for caching calculated distances
+ALTER TABLE machines ADD COLUMN IF NOT EXISTS distance NUMERIC(10,3);
 
 -- ============================================
 -- STEP 10: ADD MISSING COLUMNS TO RATINGS
 -- ============================================
 
--- Link rating to payment for verification (only if table exists)
-DO $$
-BEGIN
-  IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'ratings') THEN
-    -- Add column without FK first
-    ALTER TABLE ratings ADD COLUMN IF NOT EXISTS payment_id UUID;
+-- Link rating to payment for verification
+ALTER TABLE ratings ADD COLUMN IF NOT EXISTS payment_id UUID REFERENCES payments(id) ON DELETE SET NULL;
 
-    -- Add FK constraint if payments table has UUID id column
-    IF EXISTS (
-      SELECT 1 FROM information_schema.columns
-      WHERE table_schema = 'public' AND table_name = 'payments' AND column_name = 'id' AND data_type = 'uuid'
-    ) THEN
-      -- Add constraint if it doesn't exist
-      IF NOT EXISTS (
-        SELECT 1 FROM information_schema.table_constraints
-        WHERE constraint_name = 'ratings_payment_id_fkey' AND table_name = 'ratings'
-      ) THEN
-        ALTER TABLE ratings ADD CONSTRAINT ratings_payment_id_fkey FOREIGN KEY (payment_id) REFERENCES payments(id) ON DELETE SET NULL;
-      END IF;
-    END IF;
-
-    -- Create index
-    CREATE INDEX IF NOT EXISTS idx_ratings_payment ON ratings(payment_id);
-  END IF;
-END $$;
+-- Create index
+CREATE INDEX IF NOT EXISTS idx_ratings_payment ON ratings(payment_id);
 
 -- ============================================
 -- STEP 11: UPDATE NOTIFICATIONS TABLE STRUCTURE
@@ -290,14 +227,9 @@ DROP TABLE IF EXISTS personal_access_tokens CASCADE;
 -- STEP 14: ADD MISSING INDEXES FOR PERFORMANCE
 -- ============================================
 
--- Users indexes (only if table exists)
-DO $$
-BEGIN
-  IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'users') THEN
-    CREATE INDEX IF NOT EXISTS idx_users_tap_customer ON users(tap_customer_id);
-    CREATE INDEX IF NOT EXISTS idx_users_referrer ON users(referrer_user_id);
-  END IF;
-END $$;
+-- Users indexes
+CREATE INDEX IF NOT EXISTS idx_users_tap_customer ON users(tap_customer_id);
+CREATE INDEX IF NOT EXISTS idx_users_referrer ON users(referrer_user_id);
 
 -- Payments indexes
 CREATE INDEX IF NOT EXISTS idx_payments_tap_customer ON payments(tap_customer_id);

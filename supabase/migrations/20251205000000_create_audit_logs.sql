@@ -4,7 +4,7 @@
 CREATE TABLE IF NOT EXISTS audit_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     action VARCHAR(100) NOT NULL,
-    user_id UUID,  -- FK will be added later when users table exists
+    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
     admin_id BIGINT REFERENCES admins(id) ON DELETE SET NULL,
     resource_type VARCHAR(50) NOT NULL,
     resource_id VARCHAR(255),
@@ -13,21 +13,6 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     user_agent TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-
--- Add foreign key constraint only if users table exists and constraint doesn't exist
-DO $$
-BEGIN
-    IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'users')
-    AND NOT EXISTS (
-        SELECT 1 FROM information_schema.table_constraints
-        WHERE constraint_name = 'audit_logs_user_id_fkey'
-        AND table_name = 'audit_logs'
-    ) THEN
-        ALTER TABLE audit_logs
-        ADD CONSTRAINT audit_logs_user_id_fkey
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL;
-    END IF;
-END $$;
 
 -- Indexes for common queries
 CREATE INDEX idx_audit_logs_user_id ON audit_logs(user_id) WHERE user_id IS NOT NULL;

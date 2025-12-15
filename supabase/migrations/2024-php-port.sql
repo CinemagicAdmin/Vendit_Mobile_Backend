@@ -37,8 +37,7 @@ CREATE TABLE admins (
 
 INSERT INTO admins (id, name, email, email_verified_at, password, remember_token, created_at, updated_at) VALUES
 (1, 'admin', 'admin@gmail.com', NULL, '$2y$12$Ximf/ONaci1HJBgMSMjAfu.5B9b6CL19A2/y9vMe4/qQnnVK6keUK', '0XFg8ZlPOOgpYCrAHRKDoxdJeQBUOPd7zWdFsQZOet0bkes52zdYjK0hgafb', '2024-10-10 19:33:09', '2024-12-10 17:42:39'),
-(2, 'shakti', 'shakti@parastechnologies.com', NULL, '$2y$12$0ww3utUFs9uyORXfMf3UgOSuZ3AM2M2hhJOj9Htdo/SEgMLAxCKf.', NULL, '2024-12-06 17:46:25', '2024-12-06 17:46:25')
-ON CONFLICT (id) DO NOTHING;
+(2, 'shakti', 'shakti@parastechnologies.com', NULL, '$2y$12$0ww3utUFs9uyORXfMf3UgOSuZ3AM2M2hhJOj9Htdo/SEgMLAxCKf.', NULL, '2024-12-06 17:46:25', '2024-12-06 17:46:25');
 
 --
 -- Table structure for table cache
