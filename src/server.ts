@@ -49,7 +49,7 @@ try {
   const config = getConfig();
   server = createServer(app);
   registerMachineSyncJob();
-  server.listen(config.port, () => {
+  server.listen(config.port, config.host, () => {
     logger.info(`API listening on http://${config.host}:${config.port}`);
   });
   server.on('error', (error) => {
