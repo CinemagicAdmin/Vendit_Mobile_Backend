@@ -102,8 +102,8 @@ const buildAuthResponse = (user, tokens, otp?) => {
   const avatarKey = user.userProfile ?? user.user_profile ?? raw.user_profile ?? null;
   // Use Supabase storage URL format (consistent with users.service.ts)
   const supabaseUrl = process.env.SUPABASE_URL ?? '';
-  const userProfile = avatarKey 
-    ? `${supabaseUrl}/storage/v1/object/public/users/${avatarKey}` 
+  const userProfile = avatarKey
+    ? `${supabaseUrl}/storage/v1/object/public/users/${avatarKey}`
     : null;
   const deviceToken = user.deviceToken ?? user.device_token ?? raw.device_token ?? null;
   const deviceType = user.deviceType ?? user.device_type ?? raw.device_type ?? null;
@@ -226,7 +226,7 @@ export const loginUser = async (input) => {
     throw new apiError(400, 'Country code missing for user');
   }
   const { otp, expose } = await queueOtpForPhone({ ...input, countryCode });
-  
+
   // Only update OTP, device info, and timestamp - preserve all other user data
   const updated = await partialUpdateUser(existing.id, {
     otp,
@@ -234,7 +234,7 @@ export const loginUser = async (input) => {
     deviceToken: input.deviceToken ?? existing.deviceToken ?? null,
     updatedAt: new Date().toISOString()
   });
-  
+
   if (!updated) throw new apiError(500, 'Login failed');
   const tokens = issueTokens(updated.id, updated.email);
   return ok(buildAuthResponse(updated, tokens, expose ? otp : null), 'OTP sent');
