@@ -91,8 +91,6 @@
 //   return data;
 // };
 
-
-
 import { supabase } from '../../libs/supabase.js';
 
 // List USER notifications for admin dashboard viewing
@@ -109,7 +107,10 @@ export const listNotifications = async (params?: {
   // Read from user notifications table
   let query = supabase
     .from('notifications')
-    .select('id, title, body, is_read, type, data, payment_id, created_at, receiver_id, sender_id', { count: 'exact' })
+    .select(
+      'id, title, body, is_read, type, data, payment_id, created_at, receiver_id, sender_id',
+      { count: 'exact' }
+    )
     .order('created_at', { ascending: false });
 
   if (params?.unread_only) {

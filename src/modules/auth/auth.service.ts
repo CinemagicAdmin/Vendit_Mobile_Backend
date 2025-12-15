@@ -23,7 +23,9 @@ const sendOtp = async (phone, otp) => {
   }
   try {
     // SMSBox API integration
-    const smsApiUrl = process.env.SMS_API_URL ?? 'http://smsbox.com/smsgateway/services/messaging.asmx/Http_SendSMS';
+    const smsApiUrl =
+      process.env.SMS_API_URL ??
+      'http://smsbox.com/smsgateway/services/messaging.asmx/Http_SendSMS';
     const params = new URLSearchParams({
       username: process.env.SMS_USERNAME ?? '',
       password: process.env.SMS_PASSWORD ?? '',
@@ -35,11 +37,11 @@ const sendOtp = async (phone, otp) => {
       isblink: 'false',
       isflash: 'false'
     });
-    
+
     const { status } = await axios.get(`${smsApiUrl}?${params.toString()}`, {
       timeout: 10000 // Increased timeout for SMS gateway
     });
-    
+
     if (status !== 200) {
       throw new apiError(502, 'OTP provider failure');
     }
