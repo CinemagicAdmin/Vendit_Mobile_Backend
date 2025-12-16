@@ -14,8 +14,6 @@ DROP TABLE IF EXISTS referrals CASCADE;
 DROP TABLE IF EXISTS machine_slots CASCADE;
 DROP TABLE IF EXISTS machine_webhooks CASCADE;
 DROP TABLE IF EXISTS payment_products CASCADE;
-DROP TABLE IF EXISTS loyality_points CASCADE;
-DROP TABLE IF EXISTS user_loyality_points CASCADE;
 DROP TABLE IF EXISTS loyalty_points CASCADE;
 DROP TABLE IF EXISTS user_loyalty_points CASCADE;
 DROP TABLE IF EXISTS campaignview CASCADE;
@@ -68,11 +66,13 @@ CREATE TABLE users (
     first_name VARCHAR(255),
     last_name VARCHAR(255),
     email VARCHAR(255) UNIQUE,
-    phone VARCHAR(20) UNIQUE,
+    phone_number VARCHAR(20) UNIQUE,
     password VARCHAR(255),
     user_profile TEXT,
     date_of_birth DATE,
+    dob DATE,
     gender VARCHAR(20),
+    country VARCHAR(255),
     is_verified INTEGER DEFAULT 0,
     is_otp_verify INTEGER DEFAULT 0,
     is_notification INTEGER DEFAULT 0,
@@ -81,6 +81,7 @@ CREATE TABLE users (
     otp_expires_at TIMESTAMP,
     fcm_token TEXT,
     device_type VARCHAR(50),
+    status INTEGER DEFAULT 1,
     is_active INTEGER DEFAULT 1,
     last_login_at TIMESTAMP,
     referral_code TEXT UNIQUE,
@@ -255,15 +256,24 @@ CREATE TABLE payment_products (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- User Loyalty Points Table
-CREATE TABLE user_loyality_points (
+-- Loyalty Points Transaction Log Table
+CREATE TABLE loyalty_points (
     id BIGSERIAL PRIMARY KEY,
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    points DECIMAL(12,3) DEFAULT 0,
     payment_id BIGINT REFERENCES payments(id) ON DELETE SET NULL,
+    points DECIMAL(12,3) DEFAULT 0,
     type VARCHAR(50),
     reason TEXT,
     metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- User Loyalty Points Balance Table
+CREATE TABLE user_loyalty_points (
+    id BIGSERIAL PRIMARY KEY,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE UNIQUE,
+    points_balance DECIMAL(12,3) DEFAULT 0,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -416,7 +426,7 @@ CREATE TABLE machine_webhooks (
 -- =====================================================
 
 CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_users_phone ON users(phone);
+CREATE INDEX idx_users_phone ON users(phone_number);
 CREATE INDEX idx_users_referral_code ON users(referral_code);
 CREATE INDEX idx_machines_u_id ON machines(u_id);
 CREATE INDEX idx_machines_location ON machines(location_latitude, location_longitude);
@@ -442,6 +452,10 @@ CREATE INDEX idx_campaign_views_user ON campaign_views(user_id);
 CREATE INDEX idx_campaign_views_campaign ON campaign_views(campaign_id);
 CREATE INDEX idx_ratings_user ON ratings(user_id);
 CREATE INDEX idx_ratings_product ON ratings(product_id);
+CREATE INDEX idx_loyalty_points_user ON loyalty_points(user_id);
+CREATE INDEX idx_loyalty_points_payment ON loyalty_points(payment_id);
+CREATE INDEX idx_loyalty_points_type ON loyalty_points(type);
+CREATE INDEX idx_user_loyalty_points_user ON user_loyalty_points(user_id);
 
 -- =====================================================
 -- STEP 4: CREATE FUNCTIONS
@@ -481,12 +495,12 @@ CREATE OR REPLACE FUNCTION loyalty_increment(p_user_id UUID, p_points NUMERIC)
 RETURNS TABLE (balance NUMERIC)
 LANGUAGE plpgsql AS $$
 BEGIN
-  UPDATE user_loyality_points SET points = COALESCE(user_loyality_points.points, 0) + p_points, updated_at = NOW()
+  UPDATE user_loyalty_points SET points_balance = COALESCE(user_loyalty_points.points_balance, 0) + p_points, updated_at = NOW()
   WHERE user_id = p_user_id;
   IF NOT FOUND THEN
-    INSERT INTO user_loyality_points (user_id, points) VALUES (p_user_id, p_points);
+    INSERT INTO user_loyalty_points (user_id, points_balance) VALUES (p_user_id, p_points);
   END IF;
-  RETURN QUERY SELECT user_loyality_points.points FROM user_loyality_points WHERE user_id = p_user_id;
+  RETURN QUERY SELECT user_loyalty_points.points_balance FROM user_loyalty_points WHERE user_id = p_user_id;
 END;
 $$;
 

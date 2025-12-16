@@ -15,9 +15,11 @@ COMMENT ON TABLE payment_products IS 'Payment line items - products included in 
 COMMENT ON TABLE carts IS 'Shopping carts - temporary storage before checkout';
 COMMENT ON TABLE wallet IS 'User wallets - balance for in-app payments';
 COMMENT ON TABLE cards IS 'Saved payment cards - tokenized via Tap Payments';
+-- Note: wallet_transactions comment is added in 20251216123000_add_wallet_transactions.sql
 
 -- Loyalty & Referrals
-COMMENT ON TABLE user_loyality_points IS 'Loyalty points ledger - tracks earned/redeemed points per user';
+COMMENT ON TABLE loyalty_points IS 'Loyalty points transactions - tracks individual point earnings and redemptions';
+COMMENT ON TABLE user_loyalty_points IS 'User loyalty points balance - aggregate balance per user';
 COMMENT ON TABLE referrals IS 'Referral tracking - inviter/invitee relationships and rewards';
 
 -- Marketing & Engagement
