@@ -203,10 +203,15 @@ CREATE TABLE machine_slots (
 CREATE TABLE carts (
     id BIGSERIAL PRIMARY KEY,
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    machine_u_id VARCHAR(255),
+    slot_number VARCHAR(50),
     product_id BIGINT REFERENCES products(id) ON DELETE CASCADE,
+    product_u_id VARCHAR(255),
     quantity INTEGER DEFAULT 1,
+    unit_price DECIMAL(10,2),
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(user_id, machine_u_id, slot_number, product_u_id)
 );
 
 -- Cards Table
