@@ -71,7 +71,7 @@ RUN mkdir -p /app/src/public/Assets && \
 # Switch to non-root user
 USER nodejs
 
-# Cloud Run sets PORT automatically (defaults to 8080)
+# Cloud Run sets PORT automatically (defaults to 3000)
 # Don't hardcode PORT here - let Cloud Run set it
 ENV HOST=0.0.0.0
 EXPOSE 3000

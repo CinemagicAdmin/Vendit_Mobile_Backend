@@ -46,7 +46,7 @@ These have sensible defaults but can be overridden:
 # Server Configuration
 NODE_ENV=production
 HOST=0.0.0.0
-PORT=8080
+PORT=3000
 
 # Token TTL
 ACCESS_TOKEN_TTL=15m
