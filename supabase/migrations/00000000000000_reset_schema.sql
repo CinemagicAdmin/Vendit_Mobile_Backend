@@ -73,6 +73,7 @@ CREATE TABLE users (
     dob DATE,
     gender VARCHAR(20),
     country VARCHAR(255),
+    country_code VARCHAR(10),
     is_verified INTEGER DEFAULT 0,
     is_otp_verify INTEGER DEFAULT 0,
     is_notification INTEGER DEFAULT 0,
