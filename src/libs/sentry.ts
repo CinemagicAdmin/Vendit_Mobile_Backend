@@ -10,7 +10,7 @@ const config = getConfig();
 /**
  * Initialize Sentry for error tracking and performance monitoring
  */
-export const initSentry = (app: Express) => {
+export const initSentry = (_app: Express) => {
   if (!process.env.SENTRY_DSN) {
     logger.warn('SENTRY_DSN not configured. Error tracking disabled.');
     return;

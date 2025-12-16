@@ -12,7 +12,7 @@ router.get('/', async (_req, res) => {
     res.set('Content-Type', register.contentType);
     const metrics = await register.metrics();
     res.send(metrics);
-  } catch (error) {
+  } catch (_error) {
     res.status(500).send('Error generating metrics');
   }
 });

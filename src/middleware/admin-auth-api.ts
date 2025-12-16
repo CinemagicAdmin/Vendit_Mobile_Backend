@@ -2,7 +2,7 @@ import type { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { getConfig } from '../config/env.js';
 import { logger } from '../config/logger.js';
-import { apiError, errorResponse } from '../utils/response.js';
+import { errorResponse } from '../utils/response.js';
 
 const config = getConfig();
 

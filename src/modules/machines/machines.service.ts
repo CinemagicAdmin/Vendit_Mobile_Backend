@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { getConfig } from '../../config/env.js';
 import { logger } from '../../config/logger.js';
-import { cacheWrap, CacheKeys, CacheTTL, cacheDel } from '../../libs/cache.js';
+import { cacheWrap, CacheKeys, CacheTTL } from '../../libs/cache.js';
 import {
   getMachineById,
   getMachineSlots,

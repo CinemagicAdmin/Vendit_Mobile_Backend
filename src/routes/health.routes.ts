@@ -28,7 +28,7 @@ router.get('/', async (_req, res) => {
     const { error } = await supabase.from('users').select('id').limit(1);
     health.services.database.responseTime = Date.now() - dbStart;
     health.services.database.status = error ? 'error' : 'ok';
-  } catch (error) {
+  } catch (_error) {
     health.services.database.status = 'error';
     health.status = 'degraded';
   }
@@ -39,7 +39,7 @@ router.get('/', async (_req, res) => {
     await redis.get('health-check');
     health.services.redis.responseTime = Date.now() - redisStart;
     health.services.redis.status = 'ok';
-  } catch (error) {
+  } catch (_error) {
     health.services.redis.status = 'error';
     health.status = 'degraded';
   }

@@ -10,7 +10,7 @@ import { getConfig } from '../../config/env.js';
 import { cacheWrap, CacheKeys, CacheTTL } from '../../libs/cache.js';
 import { logger } from '../../config/logger.js';
 
-const { remoteMachineBaseUrl, remoteMachineApiKey, remoteMachinePageSize } = getConfig();
+const { remoteMachineBaseUrl, remoteMachineApiKey } = getConfig();
 const client = axios.create({
   baseURL: remoteMachineBaseUrl,
   headers: { apikey: remoteMachineApiKey }
@@ -81,11 +81,6 @@ const buildProductProperties = (metadata, remote) => {
   return properties;
 };
 export const getProducts = async (machineUId, categoryId) => {
-  // Determine cache key based on category
-  const cacheKey = categoryId
-    ? CacheKeys.products(machineUId, categoryId)
-    : CacheKeys.products(machineUId);
-
   // Cache the entire product list per machine first
   const slots = await cacheWrap(
     CacheKeys.products(machineUId),

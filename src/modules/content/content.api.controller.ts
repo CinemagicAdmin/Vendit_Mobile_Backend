@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { apiSuccess, apiError, errorResponse } from '../../utils/response.js';
+import { apiSuccess, errorResponse } from '../../utils/response.js';
 import { fetchStaticContent, updateStaticContent } from '../content/content.service.js';
 import { staticContentSchema } from '../content/content.validators.js';
 

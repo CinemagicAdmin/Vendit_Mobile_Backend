@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import multer from 'multer';
-import { apiSuccess, apiError, errorResponse } from '../../utils/response.js';
+import { apiSuccess, errorResponse } from '../../utils/response.js';
 import { audit } from '../../utils/audit.js';
 import {
   createCampaignWithMedia,

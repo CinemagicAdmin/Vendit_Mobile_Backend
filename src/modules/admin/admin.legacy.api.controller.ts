@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { apiSuccess, apiError, errorResponse } from '../../utils/response.js';
+import { errorResponse } from '../../utils/response.js';
 import { generateImageFromText } from './admin.legacy.service.js';
 
 /**

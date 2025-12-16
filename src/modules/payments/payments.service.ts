@@ -211,7 +211,7 @@ export const makeCardPayment = async (userId, input) => {
   let transactionId = randomUUID();
   let status = 'PAID';
   let chargeId;
-  let paymentMethod = redemption.payableAmount > 0 ? 'CARD' : 'LOYALTY';
+  const paymentMethod = redemption.payableAmount > 0 ? 'CARD' : 'LOYALTY';
   if (redemption.payableAmount > 0) {
     if (!tapCustomerId) {
       const customer = await tapCreateCustomer({

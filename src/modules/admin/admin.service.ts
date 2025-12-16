@@ -139,7 +139,6 @@ export const getAdminOrders = async (params?: {
   const result = await listOrders(params);
   return {
     orders: result.data.map((order) => {
-      const machine = unwrapSingle(order.machine);
       const user = unwrapSingle(order.user);
       const userName = user
         ? [user.first_name, user.last_name].filter(Boolean).join(' ')

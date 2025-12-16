@@ -11,7 +11,7 @@ const connectionErrorCodes = new Set(['ECONNREFUSED', 'ENOTFOUND', 'EAI_AGAIN'])
 const createInMemoryRedis = () => {
   const store = new Map<string, { value: string; timeout?: NodeJS.Timeout }>();
   return {
-    on(event: string, handler: (...args: any[]) => void) {
+    on(_event: string, _handler: (...args: any[]) => void) {
       return this;
     },
     async incr(key: string): Promise<number> {
