@@ -74,7 +74,7 @@ USER nodejs
 # Cloud Run sets PORT automatically (defaults to 8080)
 # Don't hardcode PORT here - let Cloud Run set it
 ENV HOST=0.0.0.0
-EXPOSE 8080
+EXPOSE 3000
 
 # Use dumb-init for proper signal handling
 ENTRYPOINT ["dumb-init", "--"]
