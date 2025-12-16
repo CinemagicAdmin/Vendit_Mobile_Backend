@@ -86,12 +86,43 @@ const readMigrationFiles = async () => {
   });
 
   return entries
-    .filter((entry) => entry.isFile() && entry.name.endsWith('.sql') && !entry.name.endsWith('.backup'))
+    .filter((entry) => entry.isFile() && entry.name.endsWith('.sql') && !entry.name.endsWith('.backup') && !entry.name.endsWith('.applied'))
     .map((entry) => ({
       name: entry.name,
-      path: join(MIGRATIONS_DIR, entry.name)
+      path: join(MIGRATIONS_DIR, entry.name),
+      version: entry.name.match(/^(\d+)/)?.[1] || null
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
+};
+
+const getAppliedMigrations = async (supabase: SupabaseClient<any, 'public', any>): Promise<Set<string>> => {
+  try {
+    // Query the Supabase migrations tracking table
+    const databaseUrl = process.env.SUPABASE_DB_URL;
+    if (!databaseUrl) return new Set();
+
+    let Client: typeof import('pg')['Client'];
+    try {
+      ({ Client } = await import('pg'));
+    } catch {
+      return new Set();
+    }
+
+    const client = new Client({
+      connectionString: databaseUrl,
+      ssl: { rejectUnauthorized: false }
+    });
+
+    await client.connect();
+    try {
+      const result = await client.query('SELECT version FROM supabase_migrations.schema_migrations');
+      return new Set(result.rows.map((r: any) => r.version));
+    } finally {
+      await client.end().catch(() => undefined);
+    }
+  } catch {
+    return new Set();
+  }
 };
 
 type ExecuteSqlPayload = { sql_text: string };
