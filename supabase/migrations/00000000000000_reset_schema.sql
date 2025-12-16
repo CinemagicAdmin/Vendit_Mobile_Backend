@@ -80,9 +80,11 @@ CREATE TABLE users (
     otp VARCHAR(6),
     otp_expires_at TIMESTAMP,
     fcm_token TEXT,
+    device_token TEXT,
     device_type VARCHAR(50),
     status INTEGER DEFAULT 1,
     is_active INTEGER DEFAULT 1,
+    tap_customer_id VARCHAR(255),
     last_login_at TIMESTAMP,
     referral_code TEXT UNIQUE,
     referrer_user_id UUID REFERENCES users(id),
@@ -203,6 +205,12 @@ CREATE TABLE carts (
 CREATE TABLE cards (
     id BIGSERIAL PRIMARY KEY,
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    tap_card_id VARCHAR(255),
+    last4 VARCHAR(4),
+    card_brand VARCHAR(50),
+    holder_name VARCHAR(255),
+    exp_month VARCHAR(2),
+    exp_year VARCHAR(4),
     account_number VARCHAR(255),
     expiry_month VARCHAR(255),
     expiry_year VARCHAR(255),
@@ -210,7 +218,8 @@ CREATE TABLE cards (
     card_id VARCHAR(255),
     card_token_id VARCHAR(255),
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(user_id, tap_card_id)
 );
 
 -- Wallet Table
@@ -228,6 +237,7 @@ CREATE TABLE payments (
     id BIGSERIAL PRIMARY KEY,
     user_id UUID REFERENCES users(id) ON DELETE SET NULL,
     machine_id BIGINT REFERENCES machines(id) ON DELETE SET NULL,
+    machine_u_id VARCHAR(255) REFERENCES machines(u_id) ON DELETE SET NULL,
     transaction_id VARCHAR(255) UNIQUE,
     charge_id VARCHAR(255),
     status VARCHAR(50),
@@ -237,6 +247,7 @@ CREATE TABLE payments (
     earned_points DECIMAL(12,3) DEFAULT 0,
     redeemed_points DECIMAL(12,3) DEFAULT 0,
     redeemed_amount DECIMAL(12,3) DEFAULT 0,
+    tap_customer_id VARCHAR(255),
     metadata JSONB,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -247,6 +258,7 @@ CREATE TABLE payment_products (
     id BIGSERIAL PRIMARY KEY,
     payment_id BIGINT REFERENCES payments(id) ON DELETE CASCADE,
     product_id BIGINT REFERENCES products(id) ON DELETE SET NULL,
+    product_u_id VARCHAR(255) REFERENCES products(product_u_id) ON DELETE SET NULL,
     quantity INTEGER NOT NULL,
     unit_price DECIMAL(10,2),
     total_price DECIMAL(10,2),
@@ -330,7 +342,10 @@ CREATE TABLE ratings (
     product_id BIGINT REFERENCES products(id) ON DELETE CASCADE,
     machine_id BIGINT REFERENCES machines(id) ON DELETE CASCADE,
     order_id BIGINT REFERENCES payments(id) ON DELETE CASCADE,
+    payment_id BIGINT REFERENCES payments(id) ON DELETE CASCADE,
     rating INTEGER CHECK (rating >= 1 AND rating <= 5),
+    emoji VARCHAR(50),
+    comment TEXT,
     review TEXT,
     is_approved BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
