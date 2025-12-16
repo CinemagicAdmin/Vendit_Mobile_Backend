@@ -4,7 +4,7 @@
 CREATE TABLE IF NOT EXISTS wallet_transactions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  payment_id BIGINT REFERENCES payments(id) ON DELETE SET NULL,
+  payment_id UUID REFERENCES payments(id) ON DELETE SET NULL,
   type TEXT NOT NULL CHECK (type IN ('Credit', 'Debit', 'credit', 'debit')),
   amount NUMERIC(10, 3) NOT NULL DEFAULT 0,
   metadata JSONB DEFAULT NULL,
