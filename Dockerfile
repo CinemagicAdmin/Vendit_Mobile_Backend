@@ -8,6 +8,7 @@ WORKDIR /app
 RUN apk add --no-cache dumb-init
 
 # Copy package files
+# Cache buster: 2025-12-16-v2
 COPY package.json package-lock.json ./
 
 # Install production dependencies only
