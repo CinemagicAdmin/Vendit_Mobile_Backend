@@ -247,7 +247,7 @@ CREATE TABLE wallet (
 
 -- Payments Table
 CREATE TABLE payments (
-    id BIGSERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES users(id) ON DELETE SET NULL,
     machine_id BIGINT REFERENCES machines(id) ON DELETE SET NULL,
     machine_u_id VARCHAR(255) REFERENCES machines(u_id) ON DELETE SET NULL,
@@ -269,7 +269,7 @@ CREATE TABLE payments (
 -- Payment Products Table
 CREATE TABLE payment_products (
     id BIGSERIAL PRIMARY KEY,
-    payment_id BIGINT REFERENCES payments(id) ON DELETE CASCADE,
+    payment_id UUID REFERENCES payments(id) ON DELETE CASCADE,
     product_id BIGINT REFERENCES products(id) ON DELETE SET NULL,
     product_u_id VARCHAR(255) REFERENCES products(product_u_id) ON DELETE SET NULL,
     quantity INTEGER NOT NULL,
@@ -285,7 +285,7 @@ CREATE TABLE payment_products (
 CREATE TABLE loyalty_points (
     id BIGSERIAL PRIMARY KEY,
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    payment_id BIGINT REFERENCES payments(id) ON DELETE SET NULL,
+    payment_id UUID REFERENCES payments(id) ON DELETE SET NULL,
     points DECIMAL(12,3) DEFAULT 0,
     type VARCHAR(50),
     reason TEXT,
@@ -354,8 +354,8 @@ CREATE TABLE ratings (
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     product_id BIGINT REFERENCES products(id) ON DELETE CASCADE,
     machine_id BIGINT REFERENCES machines(id) ON DELETE CASCADE,
-    order_id BIGINT REFERENCES payments(id) ON DELETE CASCADE,
-    payment_id BIGINT REFERENCES payments(id) ON DELETE CASCADE,
+    order_id UUID REFERENCES payments(id) ON DELETE CASCADE,
+    payment_id UUID REFERENCES payments(id) ON DELETE CASCADE,
     rating INTEGER CHECK (rating >= 1 AND rating <= 5),
     emoji VARCHAR(50),
     comment TEXT,
