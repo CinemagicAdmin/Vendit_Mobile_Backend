@@ -84,7 +84,7 @@ export interface UserUpdatePayload {
 // ============================================================================
 
 export interface Machine {
-  id: number;
+  id: string;
   u_id: string;
   machine_tag: string;
   serial_number: string | null;
@@ -99,7 +99,7 @@ export interface Machine {
 }
 
 export interface MachineSlot {
-  id: number;
+  id: string;
   machine_u_id: string;
   slot_number: string;
   product_u_id: string | null;
@@ -116,7 +116,7 @@ export interface MachineSlot {
 // ============================================================================
 
 export interface Product {
-  id: number;
+  id: string;
   product_u_id: string;
   vendor_part_no: string | null;
   category_id: string | null;
