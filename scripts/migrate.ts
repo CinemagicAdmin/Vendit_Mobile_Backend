@@ -162,15 +162,32 @@ const runSingleMigration = async (
 };
 
 const run = async () => {
-  const files = await readMigrationFiles();
-  if (!files.length) {
+  const allFiles = await readMigrationFiles();
+  if (!allFiles.length) {
     logger.info('No migration files found. Nothing to run.');
     return;
   }
 
-  logger.info({ count: files.length }, 'Found migration files');
-  
   const supabase = createClient(env.supabaseUrl, env.supabaseServiceRoleKey) as SupabaseClient<any, 'public', any>;
+  
+  // Get already applied migrations
+  const appliedVersions = await getAppliedMigrations(supabase);
+  
+  // Filter out already applied migrations
+  const files = allFiles.filter(file => {
+    if (file.version && appliedVersions.has(file.version)) {
+      logger.info({ migration: file.name }, 'Skipping already applied migration');
+      return false;
+    }
+    return true;
+  });
+
+  if (!files.length) {
+    logger.info('All migrations already applied. Nothing to run.');
+    return;
+  }
+
+  logger.info({ count: files.length, skipped: allFiles.length - files.length }, 'Found pending migration files');
 
   let successCount = 0;
   let failedCount = 0;
