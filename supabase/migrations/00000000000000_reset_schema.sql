@@ -237,7 +237,7 @@ CREATE TABLE cards (
 
 -- Wallet Table
 CREATE TABLE wallet (
-    id BIGSERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES users(id) ON DELETE CASCADE UNIQUE,
     balance DECIMAL(12,3) DEFAULT 0,
     currency VARCHAR(10) DEFAULT 'KWD',
