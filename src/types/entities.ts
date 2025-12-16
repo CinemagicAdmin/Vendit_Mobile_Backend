@@ -496,3 +496,18 @@ export interface RedemptionResult {
   redeemValue: number;
   payableAmount: number;
 }
+
+// ============================================================================
+// Static Content Types
+// ============================================================================
+
+export interface StaticContent {
+  id: string;
+  key: string;
+  title: string | null;
+  content: string | null;
+  type: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
