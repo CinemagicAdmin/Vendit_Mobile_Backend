@@ -103,12 +103,12 @@ CREATE TABLE users (
 
 -- Admins Table
 CREATE TABLE admins (
-    id BIGSERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
     role VARCHAR(50) DEFAULT 'admin',
-    parent_admin_id BIGINT REFERENCES admins(id),
+    parent_admin_id UUID REFERENCES admins(id),
     is_active BOOLEAN DEFAULT TRUE,
     last_login_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -117,7 +117,7 @@ CREATE TABLE admins (
 
 -- Categories Table
 CREATE TABLE categories (
-    id BIGSERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     category_u_id VARCHAR(255),
     category_name VARCHAR(255) UNIQUE NOT NULL,
     description TEXT,
@@ -129,7 +129,7 @@ CREATE TABLE categories (
 
 -- Machines Table
 CREATE TABLE machines (
-    id BIGSERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     u_id VARCHAR(255) UNIQUE NOT NULL,
     machine_tag VARCHAR(255),
     model VARCHAR(255),
@@ -160,10 +160,10 @@ CREATE TABLE machines (
 
 -- Products Table
 CREATE TABLE products (
-    id BIGSERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     product_u_id VARCHAR(255) UNIQUE NOT NULL,
-    machine_id BIGINT REFERENCES machines(id) ON DELETE SET NULL,
-    category_id BIGINT REFERENCES categories(id) ON DELETE SET NULL,
+    machine_id UUID REFERENCES machines(id) ON DELETE SET NULL,
+    category_id UUID REFERENCES categories(id) ON DELETE SET NULL,
     brand_name VARCHAR(255),
     description TEXT,
     vendor_part_no VARCHAR(255),
@@ -186,7 +186,7 @@ CREATE TABLE products (
 
 -- Machine Slots Table
 CREATE TABLE machine_slots (
-    id BIGSERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     machine_u_id VARCHAR(255) NOT NULL,
     slot_number VARCHAR(50) NOT NULL,
     product_u_id VARCHAR(255),
@@ -201,11 +201,11 @@ CREATE TABLE machine_slots (
 
 -- Carts Table
 CREATE TABLE carts (
-    id BIGSERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     machine_u_id VARCHAR(255),
     slot_number VARCHAR(50),
-    product_id BIGINT REFERENCES products(id) ON DELETE CASCADE,
+    product_id UUID REFERENCES products(id) ON DELETE CASCADE,
     product_u_id VARCHAR(255),
     quantity INTEGER DEFAULT 1,
     unit_price DECIMAL(10,2),
@@ -216,7 +216,7 @@ CREATE TABLE carts (
 
 -- Cards Table
 CREATE TABLE cards (
-    id BIGSERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     tap_card_id VARCHAR(255),
     last4 VARCHAR(4),
@@ -249,7 +249,7 @@ CREATE TABLE wallet (
 CREATE TABLE payments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES users(id) ON DELETE SET NULL,
-    machine_id BIGINT REFERENCES machines(id) ON DELETE SET NULL,
+    machine_id UUID REFERENCES machines(id) ON DELETE SET NULL,
     machine_u_id VARCHAR(255) REFERENCES machines(u_id) ON DELETE SET NULL,
     transaction_id VARCHAR(255) UNIQUE,
     charge_id VARCHAR(255),
@@ -268,9 +268,9 @@ CREATE TABLE payments (
 
 -- Payment Products Table
 CREATE TABLE payment_products (
-    id BIGSERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     payment_id UUID REFERENCES payments(id) ON DELETE CASCADE,
-    product_id BIGINT REFERENCES products(id) ON DELETE SET NULL,
+    product_id UUID REFERENCES products(id) ON DELETE SET NULL,
     product_u_id VARCHAR(255) REFERENCES products(product_u_id) ON DELETE SET NULL,
     quantity INTEGER NOT NULL,
     unit_price DECIMAL(10,2),
@@ -283,7 +283,7 @@ CREATE TABLE payment_products (
 
 -- Loyalty Points Transaction Log Table
 CREATE TABLE loyalty_points (
-    id BIGSERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     payment_id UUID REFERENCES payments(id) ON DELETE SET NULL,
     points DECIMAL(12,3) DEFAULT 0,
@@ -296,7 +296,7 @@ CREATE TABLE loyalty_points (
 
 -- User Loyalty Points Balance Table
 CREATE TABLE user_loyalty_points (
-    id BIGSERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES users(id) ON DELETE CASCADE UNIQUE,
     points_balance DECIMAL(12,3) DEFAULT 0,
     created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -321,7 +321,7 @@ CREATE TABLE referrals (
 
 -- Campaigns Table
 CREATE TABLE campaigns (
-    id BIGSERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title VARCHAR(255),
     description TEXT,
     image_url TEXT,
@@ -340,8 +340,8 @@ CREATE TABLE campaigns (
 
 -- Campaign Views Table
 CREATE TABLE campaign_views (
-    id BIGSERIAL PRIMARY KEY,
-    campaign_id BIGINT REFERENCES campaigns(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    campaign_id UUID REFERENCES campaigns(id) ON DELETE CASCADE,
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     viewed_at TIMESTAMPTZ DEFAULT NOW(),
     duration_seconds INTEGER,
@@ -350,10 +350,10 @@ CREATE TABLE campaign_views (
 
 -- Ratings Table
 CREATE TABLE ratings (
-    id BIGSERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    product_id BIGINT REFERENCES products(id) ON DELETE CASCADE,
-    machine_id BIGINT REFERENCES machines(id) ON DELETE CASCADE,
+    product_id UUID REFERENCES products(id) ON DELETE CASCADE,
+    machine_id UUID REFERENCES machines(id) ON DELETE CASCADE,
     order_id UUID REFERENCES payments(id) ON DELETE CASCADE,
     payment_id UUID REFERENCES payments(id) ON DELETE CASCADE,
     rating INTEGER CHECK (rating >= 1 AND rating <= 5),
@@ -367,7 +367,7 @@ CREATE TABLE ratings (
 
 -- Contact Us Table
 CREATE TABLE contact_us (
-    id BIGSERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES users(id) ON DELETE SET NULL,
     name VARCHAR(255),
     email VARCHAR(255) NOT NULL,
@@ -381,7 +381,7 @@ CREATE TABLE contact_us (
 
 -- Static Content Table
 CREATE TABLE static_content (
-    id BIGSERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     key VARCHAR(100) UNIQUE,
     title VARCHAR(255),
     content TEXT,
@@ -410,7 +410,7 @@ CREATE TABLE notifications (
 -- Admin Notifications Table
 CREATE TABLE admin_notifications (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    admin_id BIGINT REFERENCES admins(id) ON DELETE CASCADE NOT NULL,
+    admin_id UUID REFERENCES admins(id) ON DELETE CASCADE NOT NULL,
     title VARCHAR(255) NOT NULL,
     message TEXT NOT NULL,
     type VARCHAR(50) DEFAULT 'info' CHECK (type IN ('info', 'success', 'warning', 'error')),
@@ -424,7 +424,7 @@ CREATE TABLE audit_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     action VARCHAR(100) NOT NULL,
     user_id UUID REFERENCES users(id) ON DELETE SET NULL,
-    admin_id BIGINT REFERENCES admins(id) ON DELETE SET NULL,
+    admin_id UUID REFERENCES admins(id) ON DELETE SET NULL,
     resource_type VARCHAR(50) NOT NULL,
     resource_id VARCHAR(255),
     details JSONB,
@@ -442,7 +442,7 @@ CREATE TABLE password_reset_tokens (
 
 -- Machine Webhooks Logging
 CREATE TABLE machine_webhooks (
-    id BIGSERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     source VARCHAR(100),
     headers JSONB,
     payload JSONB,
