@@ -503,11 +503,8 @@ export interface RedemptionResult {
 
 export interface StaticContent {
   id: string;
-  key: string;
-  title: string | null;
-  content: string | null;
-  type: string | null;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
+  privacy_policy: string | null;
+  terms_and_conditions: string | null;
+  faq: string | null;
+  updated_at: string | null;
 }

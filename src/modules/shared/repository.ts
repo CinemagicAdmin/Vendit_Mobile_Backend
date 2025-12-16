@@ -1,4 +1,5 @@
 import { supabase } from '../../libs/supabase.js';
+import { mapStaticContentResponse, STATIC_CONTENT_KEYS } from '../content/content.repository.js';
 export const getUserById = async (id) => {
   const { data, error } = await supabase.from('users').select('*').eq('id', id).maybeSingle();
   if (error) throw error;
@@ -30,9 +31,12 @@ export const createContact = async ({ userId, email, subject, message }) => {
   if (error) throw error;
 };
 export const getStaticContent = async () => {
-  const { data, error } = await supabase.from('static_content').select('*').limit(1).maybeSingle();
+  const { data, error } = await supabase
+    .from('static_content')
+    .select('id,key,content,updated_at')
+    .in('key', Object.values(STATIC_CONTENT_KEYS));
   if (error) throw error;
-  return data;
+  return mapStaticContentResponse(data ?? []);
 };
 export const getUserByPhone = async (phoneNumber) => {
   const { data, error } = await supabase
