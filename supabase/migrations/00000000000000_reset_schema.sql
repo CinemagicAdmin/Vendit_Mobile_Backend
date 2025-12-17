@@ -245,6 +245,17 @@ CREATE TABLE wallet (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Wallet Transactions Table
+CREATE TABLE wallet_transactions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    payment_id UUID REFERENCES payments(id) ON DELETE SET NULL,
+    type TEXT NOT NULL CHECK (type IN ('Credit', 'Debit', 'credit', 'debit')),
+    amount DECIMAL(10, 3) NOT NULL DEFAULT 0,
+    metadata JSONB DEFAULT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- Payments Table
 CREATE TABLE payments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -469,6 +480,8 @@ CREATE INDEX idx_payments_user_id ON payments(user_id);
 CREATE INDEX idx_payments_transaction_id ON payments(transaction_id);
 CREATE INDEX idx_payments_status ON payments(status);
 CREATE INDEX idx_carts_user_id ON carts(user_id);
+CREATE INDEX idx_wallet_transactions_user_id ON wallet_transactions(user_id);
+CREATE INDEX idx_wallet_transactions_created_at ON wallet_transactions(created_at DESC);
 CREATE INDEX idx_notifications_receiver ON notifications(receiver_id);
 CREATE INDEX idx_notifications_is_read ON notifications(is_read);
 CREATE INDEX idx_admin_notifications_admin ON admin_notifications(admin_id);
