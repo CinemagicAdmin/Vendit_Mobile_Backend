@@ -51,6 +51,7 @@ import {
 import { getContentApi, updateContentApi } from '../modules/content/content.api.controller.js';
 import { generateImageApi } from '../modules/admin/admin.legacy.api.controller.js';
 import { generateMachineQr } from '../modules/machines/machines.qr.service.js';
+import { handleCacheStats, handleCacheClear } from '../modules/admin/admin.cache.controller.js';
 
 const router = Router();
 
@@ -131,6 +132,10 @@ router.get('/activity-logs', getActivityLogsApi);
 router.get('/notifications', getNotificationsApi);
 router.post('/notifications/:id/read', markAsReadApi);
 router.post('/notifications/mark-all-read', markAllAsReadApi);
+
+// Cache Management
+router.get('/cache/stats', handleCacheStats);
+router.post('/cache/clear', handleCacheClear);
 
 // Legacy Tools
 router.post('/legacy/text-to-image', generateImageApi);
