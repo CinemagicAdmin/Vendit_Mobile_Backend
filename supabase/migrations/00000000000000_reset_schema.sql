@@ -485,7 +485,21 @@ CREATE INDEX idx_ratings_product ON ratings(product_id);
 CREATE INDEX idx_loyalty_points_user ON loyalty_points(user_id);
 CREATE INDEX idx_loyalty_points_payment ON loyalty_points(payment_id);
 CREATE INDEX idx_loyalty_points_type ON loyalty_points(type);
+CREATE INDEX idx_loyalty_points_reason ON loyalty_points(reason);
 CREATE INDEX idx_user_loyalty_points_user ON user_loyalty_points(user_id);
+
+-- Performance optimization indexes
+CREATE INDEX idx_audit_logs_action ON audit_logs(action);
+CREATE INDEX idx_audit_logs_resource ON audit_logs(resource_type, resource_id);
+CREATE INDEX idx_audit_logs_user_date ON audit_logs(user_id, created_at DESC) WHERE user_id IS NOT NULL;
+CREATE INDEX idx_payments_tap_customer ON payments(tap_customer_id);
+CREATE INDEX idx_payments_earned_points ON payments(earned_points);
+CREATE INDEX idx_notifications_sender ON notifications(sender_id);
+CREATE INDEX idx_users_tap_customer ON users(tap_customer_id);
+CREATE INDEX idx_users_referrer ON users(referrer_user_id);
+CREATE INDEX idx_referrals_invited ON referrals(invited_user_id);
+CREATE INDEX idx_referrals_code ON referrals(referral_code) WHERE referral_code IS NOT NULL;
+CREATE INDEX idx_ratings_payment ON ratings(payment_id);
 
 -- =====================================================
 -- STEP 4: CREATE FUNCTIONS
