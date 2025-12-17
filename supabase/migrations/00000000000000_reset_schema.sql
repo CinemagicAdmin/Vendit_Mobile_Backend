@@ -117,7 +117,7 @@ CREATE TABLE admins (
 
 -- Categories Table
 CREATE TABLE categories (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id BIGSERIAL PRIMARY KEY,
     category_u_id VARCHAR(255),
     category_name VARCHAR(255) UNIQUE NOT NULL,
     description TEXT,
@@ -163,7 +163,7 @@ CREATE TABLE products (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     product_u_id VARCHAR(255) UNIQUE NOT NULL,
     machine_id UUID REFERENCES machines(id) ON DELETE SET NULL,
-    category_id UUID REFERENCES categories(id) ON DELETE SET NULL,
+    category_id BIGINT REFERENCES categories(id) ON DELETE SET NULL,
     brand_name VARCHAR(255),
     description TEXT,
     vendor_part_no VARCHAR(255),
