@@ -299,6 +299,8 @@ CREATE TABLE user_loyalty_points (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES users(id) ON DELETE CASCADE UNIQUE,
     points_balance DECIMAL(12,3) DEFAULT 0,
+    total_points_earned DECIMAL(12,3) DEFAULT 0,
+    total_points_redeemed DECIMAL(12,3) DEFAULT 0,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
