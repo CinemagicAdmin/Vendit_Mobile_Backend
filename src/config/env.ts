@@ -134,7 +134,8 @@ export const getConfig = () => {
   const parsed = schema.safeParse({
     nodeEnv: runtimeNodeEnv,
     host: process.env.HOST,
-    port: sanitizeNumberEnv(process.env.PORT),
+    //  port: sanitizeNumberEnv(process.env.PORT),
+    port: process.env.PORT, // CHANGED: Removed sanitizeNumberEnv wrapper
     supabaseUrl: process.env.SUPABASE_URL ?? (isTest ? 'https://stub.supabase.co' : undefined),
     supabaseServiceRoleKey:
       process.env.SUPABASE_SERVICE_ROLE_KEY ?? (isTest ? 'stub-service-role-key' : undefined),
