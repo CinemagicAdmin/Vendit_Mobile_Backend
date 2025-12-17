@@ -113,15 +113,17 @@ export const CacheKeys = {
   machine: (machineId: string): string => `machine:${machineId}`,
   machines: (lat: number, lng: number, radius: number): string =>
     `machines:${lat.toFixed(4)}:${lng.toFixed(4)}:${radius}`,
-  productDetail: (productId: string): string => `product:${productId}`
+  productDetail: (productId: string): string => `product:${productId}`,
+  campaigns: (): string => `campaigns:active`
 };
 /**
  * Cache TTL constants (in seconds)
  */
 export const CacheTTL = {
-  SHORT: 60, // 1 minute
-  MEDIUM: 300, // 5 minutes
-  LONG: 600, // 10 minutes
+  SHORT: 300, // 5 minutes (updated from 60s)
+  MEDIUM: 1800, // 30 minutes (updated from 300s)
+  LONG: 3600, // 1 hour (updated from 600s)
   HOUR: 3600, // 1 hour
   DAY: 86400 // 24 hours
 };
+

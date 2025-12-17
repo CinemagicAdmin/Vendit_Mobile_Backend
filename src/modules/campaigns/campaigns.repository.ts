@@ -17,11 +17,25 @@ export const recordCampaignView = async (userId, campaignId) => {
     .upsert({ user_id: userId, campaign_id: campaignId }, { onConflict: 'user_id,campaign_id' });
   if (error) throw error;
 };
-export const listCampaigns = async () => {
-  const { data, error } = await supabase
-    .from('campaigns')
-    .select('*')
-    .order('start_date', { ascending: false });
+export const listCampaigns = async (options = { limit: 10, activeOnly: true }) => {
+  let query = supabase.from('campaigns').select('*');
+
+  // Filter active campaigns by default
+  if (options.activeOnly) {
+    const now = new Date().toISOString();
+    query = query
+      .eq('is_active', true)
+      .lte('start_date', now)
+      .gte('end_date', now);
+  }
+
+  query = query.order('start_date', { ascending: false });
+
+  if (options.limit) {
+    query = query.limit(options.limit);
+  }
+
+  const { data, error } = await query;
   if (error) throw error;
   return data ?? [];
 };

@@ -13,6 +13,7 @@ import {
   updateCampaign
 } from './campaigns.repository.js';
 import { getConfig } from '../../config/env.js';
+import { cacheWrap, CacheKeys, CacheTTL, cacheDel } from '../../libs/cache.js';
 const CAMPAIGN_BUCKET = 'campaigns';
 const { supabaseUrl } = getConfig();
 const buildImageUrl = (imagePath) => {
@@ -40,7 +41,12 @@ export const fetchLatestCampaign = async (userId) => {
   return ok({ ...campaign, image_url: buildImageUrl(campaign.image_path) }, 'Campaign list found');
 };
 export const fetchAllCampaigns = async () => {
-  const data = await listCampaigns();
+  // Cache active campaigns for 5 minutes
+  const data = await cacheWrap(
+    CacheKeys.campaigns(),
+    () => listCampaigns({ limit: 10, activeOnly: true }),
+    { ttl: CacheTTL.SHORT } // 5 minutes
+  );
   return data.map((c) => ({ ...c, image_url: buildImageUrl(c.image_path) }));
 };
 
@@ -71,6 +77,10 @@ export const createCampaignWithMedia = async (payload) => {
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   });
+  
+  // Invalidate cache
+  await cacheDel(CacheKeys.campaigns());
+  
   return ok(
     { ...campaign, image_url: buildImageUrl(campaign?.image_path ?? null) },
     'Campaign created'
@@ -91,6 +101,10 @@ export const updateCampaignWithMedia = async (id, payload) => {
     image_path: imagePath ?? existing.image_path,
     updated_at: new Date().toISOString()
   });
+  
+  // Invalidate cache
+  await cacheDel(CacheKeys.campaigns());
+  
   return ok(
     { ...updated, image_url: buildImageUrl(updated?.image_path ?? null) },
     'Campaign updated'
@@ -98,5 +112,9 @@ export const updateCampaignWithMedia = async (id, payload) => {
 };
 export const removeCampaign = async (id) => {
   await deleteCampaign(id);
+  
+  // Invalidate cache
+  await cacheDel(CacheKeys.campaigns());
+  
   return ok(null, 'Campaign deleted');
 };

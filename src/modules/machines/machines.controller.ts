@@ -8,10 +8,23 @@ export const handleSyncMachines = async (_req, res) => {
   await redis.del(`machines:list:*`);
   return res.json(response);
 };
-export const handleListMachines = async (_req, res) => {
-  const machines = await listMachines();
+export const handleListMachines = async (req, res) => {
+  const limit = Math.min(Number(req.query.limit) || 20, 100); // Default 20, max 100
+  const offset = Number(req.query.offset) || 0;
+  
+  const allMachines = await listMachines();
+  const machines = allMachines.slice(offset, offset + limit);
   const enriched = machines.map((machine) => ({ ...machine, distance: null }));
-  return res.json(ok(enriched, 'Machines listing'));
+  
+  return res.json(ok({
+    data: enriched,
+    meta: {
+      total: allMachines.length,
+      limit,
+      offset,
+      hasMore: offset + limit < allMachines.length
+    }
+  }, 'Machines listing'));
 };
 // return res.json(ok(machines, 'Machines listing'));
 // export const handleListMachines = async (req: Request, res: Response) => {
