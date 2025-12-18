@@ -230,7 +230,7 @@ export const listProducts = async (params?: { page?: number; limit?: number; sea
         brand_name
       ),
       quantity,
-      machine_id
+      machine_u_id
     `,
     { count: 'exact' }
   );
