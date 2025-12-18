@@ -91,7 +91,7 @@ export const getProducts = async (machineUId, categoryId) => {
   const normalizedCategory = categoryId?.trim().toLowerCase();
   const isAllCategory =
     !categoryId ||
-    categoryId === '1' || // Category ID 1 is "All"
+    categoryId === '4' || // Category ID 1 is "All"
     normalizedCategory === 'all' ||
     normalizedCategory === 'all products' ||
     normalizedCategory === 'all-products';
