@@ -67,7 +67,6 @@ export const getAdminCategories = async () => {
     id: row.id,
     name: row.category_name,
     description: row.description,
-    icon_url: buildCategoryIconUrl(row.icon_path ?? null),
     created_at: row.created_at
   }));
 };
@@ -79,7 +78,6 @@ export const getAdminCategoryById = async (id: string) => {
     id: category.id,
     name: category.category_name,
     description: category.description,
-    icon_url: buildCategoryIconUrl(category.icon_path ?? null),
     status: 1 // Categories are always active
   };
 };
@@ -103,45 +101,21 @@ export const getAdminCategoryProducts = async (categoryId: string) => {
   }));
 };
 export const createAdminCategory = async (payload) => {
-  const iconPath = await uploadFile({
-    bucket: CATEGORY_BUCKET,
-    file: payload.file,
-    prefix: payload.name.toLowerCase().replace(/\s+/g, '-')
-  });
+  // Icon upload temporarily disabled - icon_path column doesn't exist
   const category = await createCategory({
     name: payload.name,
-    description: payload.description,
-    iconPath
+    description: payload.description
   });
-  return ok(
-    {
-      ...category,
-      icon_url: buildCategoryIconUrl(category?.icon_path ?? null)
-    },
-    'Category created'
-  );
+  return ok(category, 'Category created');
 };
 export const updateAdminCategory = async (id, payload) => {
   const existing = await getCategoryById(id);
   if (!existing) throw new apiError(404, 'Category not found');
-  let iconPath = existing.icon_path ?? null;
-  if (payload.file) {
-    iconPath = await uploadFile({
-      bucket: CATEGORY_BUCKET,
-      file: payload.file,
-      prefix: payload.name.toLowerCase().replace(/\s+/g, '-')
-    });
-  }
+  
+  // Icon upload temporarily disabled - icon_path column doesn't exist
   const updated = await updateCategory(id, {
     name: payload.name,
-    description: payload.description,
-    iconPath
+    description: payload.description
   });
-  return ok(
-    {
-      ...updated,
-      icon_url: buildCategoryIconUrl(updated?.icon_path ?? null)
-    },
-    'Category updated'
-  );
+  return ok(updated, 'Category updated');
 };
