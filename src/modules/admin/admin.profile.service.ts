@@ -36,30 +36,17 @@ const uploadFile = async ({ bucket, file, prefix }) => {
 export const getAdminProfile = async (adminId) => {
   const admin = await getAdminById(adminId);
   if (!admin) throw new apiError(404, 'Admin not found');
-  return ok(
-    { ...admin, avatar_url: buildAdminAvatarUrl(admin.avatar_path ?? null) },
-    'Profile fetched'
-  );
+  return ok(admin, 'Profile fetched');
 };
 export const updateAdminProfile = async (adminId, payload) => {
   const admin = await getAdminById(adminId);
   if (!admin) throw new apiError(404, 'Admin not found');
-  let avatarPath = admin.avatar_path ?? null;
-  if (payload.file) {
-    avatarPath = await uploadFile({
-      bucket: ADMIN_BUCKET,
-      file: payload.file,
-      prefix: adminId
-    });
-  }
+  
+  // Avatar upload temporarily disabled - avatar_path column doesn't exist
   const updated = await updateAdminProfileInDb(adminId, {
-    name: payload.name,
-    avatarPath
+    name: payload.name
   });
-  return ok(
-    { ...updated, avatar_url: buildAdminAvatarUrl(updated?.avatar_path ?? null) },
-    'Profile updated'
-  );
+  return ok(updated, 'Profile updated');
 };
 export const getAdminCategories = async () => {
   const rows = await listCategories();
