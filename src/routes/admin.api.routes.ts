@@ -6,6 +6,12 @@ import {
   logoutApi,
   changePasswordApi
 } from '../modules/admin/admin-auth-api.controller.js';
+import { refreshTokenApi } from '../modules/admin/admin-auth-refresh.controller.js';
+import {
+  getSessionsApi,
+  revokeSessionApi,
+  revokeAllSessionsApi
+} from '../modules/admin/admin-sessions.controller.js';
 import {
   getDashboardApi,
   getUsersApi,
@@ -59,6 +65,7 @@ const router = Router();
 // Authentication Routes (no token required)
 // =============================================================================
 router.post('/auth/login', loginApi);
+router.post('/auth/refresh', refreshTokenApi); // New: Token refresh
 
 // =============================================================================
 // Protected Routes (require JWT token)
@@ -69,6 +76,11 @@ router.use(requireAdminToken); // All routes below require authentication
 router.get('/auth/me', getMeApi);
 router.post('/auth/logout', logoutApi);
 router.put('/auth/change-password', changePasswordApi);
+
+// Session Management (NEW)
+router.get('/sessions', getSessionsApi);
+router.delete('/sessions/:sessionId', revokeSessionApi);
+router.post('/sessions/revoke-all', revokeAllSessionsApi);
 
 // Dashboard
 router.get('/dashboard', getDashboardApi);

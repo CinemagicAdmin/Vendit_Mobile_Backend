@@ -4,6 +4,7 @@ import { getConfig } from '../../config/env.js';
 import { authenticateAdmin, changeAdminPassword } from './admin-auth.service.js';
 import { apiError, apiSuccess, errorResponse } from '../../utils/response.js';
 import { audit } from '../../utils/audit.js';
+import { setSession } from '../../libs/session.js';
 import type { Request, Response } from 'express';
 
 const config = getConfig();
@@ -51,6 +52,16 @@ export const loginApi = async (req: Request, res: Response) => {
 
     // Log admin login
     await audit.adminLogin(admin.id, admin.email, req);
+
+    // Store session in Redis
+    await setSession(admin.id, refreshToken, {
+      userId: admin.id,
+      createdAt: Date.now(),
+      expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+      deviceInfo: req.headers['x-mobile-client'] === 'true' ? 'mobile' : 'web'
+    });
 
     // Check if mobile client (backward compatibility)
     const isMobileClient = req.headers['x-mobile-client'] === 'true';
@@ -148,12 +159,21 @@ export const getMeApi = async (req: Request, res: Response) => {
 };
 
 /**
- * API: Admin logout - clears cookies
+ * API: Admin logout - clears cookies and revokes session
  */
 export const logoutApi = async (req: Request, res: Response) => {
   const admin = (req as any).admin;
+  const refreshToken = req.cookies?.refresh_token;
+  
   if (admin?.adminId || admin?.id) {
-    await audit.adminLogout(admin.adminId || admin.id, req);
+    const adminId = admin.adminId || admin.id;
+    await audit.adminLogout(adminId, req);
+    
+    // Revoke all sessions for this user
+    if (refreshToken) {
+      const { revokeSession } = await import('../../libs/session.js');
+      await revokeSession(adminId, refreshToken);
+    }
   }
   
   // Clear all auth cookies
