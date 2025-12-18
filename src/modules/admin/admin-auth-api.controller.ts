@@ -92,6 +92,7 @@ export const loginApi = async (req: Request, res: Response) => {
       httpOnly: true,
       secure: isProduction,
       sameSite: 'lax', // Changed from 'strict' to allow localhost:3000 -> localhost:4000
+      path: '/', // Explicitly set path to ensure cookie is sent with all requests
       maxAge: 15 * 60 * 1000 // 15 minutes
     });
 
@@ -99,6 +100,7 @@ export const loginApi = async (req: Request, res: Response) => {
       httpOnly: true,
       secure: isProduction,
       sameSite: 'lax', // Changed from 'strict' to allow localhost:3000 -> localhost:4000
+      path: '/', // Explicitly set path
       maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
     });
 
@@ -106,6 +108,7 @@ export const loginApi = async (req: Request, res: Response) => {
       httpOnly: false, // Accessible to JavaScript for CSRF validation
       secure: isProduction,
       sameSite: 'lax', // Changed from 'strict' to allow localhost:3000 -> localhost:4000
+      path: '/', // Explicitly set path
       maxAge: 24 * 60 * 60 * 1000 // 24 hours
     });
 
