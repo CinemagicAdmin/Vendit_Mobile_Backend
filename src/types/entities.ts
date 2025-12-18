@@ -429,6 +429,12 @@ declare global {
   namespace Express {
     interface Request {
       user?: AuthenticatedUser;
+      admin?: {
+        id: string;
+        email: string;
+        name?: string | null;
+        role?: string;
+      };
       rawBody?: Buffer;
     }
     interface Session {

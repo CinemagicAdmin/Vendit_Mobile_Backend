@@ -7,8 +7,9 @@ import type { ApiResponse } from '../types/entities.js';
 
 /**
  * Custom API Error class for consistent error handling
+ * @deprecated Use BaseApiError and specific error classes from ./errors.js instead
  */
-export class apiError extends Error {
+export class ApiError extends Error {
   statusCode: number;
   details: any;
   constructor(statusCode: number, message: string, details: any = null) {
@@ -24,6 +25,9 @@ export class apiError extends Error {
     };
   }
 }
+
+// Maintain backward compatibility
+export const apiError = ApiError;
 
 /**
  * Create an error response for JSON APIs
