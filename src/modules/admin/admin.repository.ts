@@ -223,14 +223,14 @@ export const listProducts = async (params?: { page?: number; limit?: number; sea
 
   let query = supabase.from('machine_slots').select(
     `
-      machine:machine_u_id (machine_tag),
       product:product_u_id (
         product_u_id,
         description,
         product_image_url,
         brand_name
       ),
-      quantity
+      quantity,
+      machine_id
     `,
     { count: 'exact' }
   );

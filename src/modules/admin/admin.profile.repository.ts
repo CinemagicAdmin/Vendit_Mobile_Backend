@@ -25,7 +25,7 @@ export const updateAdminProfileInDb = async (id, payload) => {
 export const listCategories = async () => {
   const { data, error } = await supabase
     .from('categories')
-    .select('id, category_name, description, icon_path, created_at')
+    .select('id, category_name, description, created_at')
     .order('created_at', { ascending: false });
   if (error) throw error;
   return data ?? [];
@@ -36,11 +36,10 @@ export const createCategory = async (payload) => {
     .insert({
       category_name: payload.name,
       description: payload.description ?? null,
-      icon_path: payload.iconPath ?? null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     })
-    .select('id, category_name, description, icon_path')
+    .select('id, category_name, description')
     .maybeSingle();
   if (error) throw error;
   return data;
@@ -48,23 +47,22 @@ export const createCategory = async (payload) => {
 export const getCategoryById = async (id) => {
   const { data, error } = await supabase
     .from('categories')
-    .select('id, category_name, description, icon_path')
+    .select('id, category_name, description')
     .eq('id', id)
     .maybeSingle();
   if (error) throw error;
   return data;
 };
 export const updateCategory = async (id, payload) => {
-  const { data, error } = await supabase
+  const { data, error} = await supabase
     .from('categories')
     .update({
       category_name: payload.name,
       description: payload.description ?? null,
-      icon_path: payload.iconPath ?? null,
       updated_at: new Date().toISOString()
     })
     .eq('id', id)
-    .select('id, category_name, description, icon_path')
+    .select('id, category_name, description')
     .maybeSingle();
   if (error) throw error;
   return data;
