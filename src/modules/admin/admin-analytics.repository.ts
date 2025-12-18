@@ -14,7 +14,8 @@ export const getSalesTrends = async (period: string = '30d') => {
     .select('created_at, amount, status')
     .gte('created_at', startDate.toISOString())
     .eq('status', 'completed')
-    .order('created_at', { ascending: true });
+    .order('created_at', { ascending: true})
+    .limit(5000); // Prevent excessive data transfer
 
   if (error) throw error;
 
@@ -49,7 +50,8 @@ export const getUserGrowth = async (period: string = '30d') => {
     .from('users')
     .select('created_at')
     .gte('created_at', startDate.toISOString())
-    .order('created_at', { ascending: true });
+    .order('created_at', { ascending: true })
+    .limit(10000); // Reasonable limit for user growth
 
   if (error) throw error;
 

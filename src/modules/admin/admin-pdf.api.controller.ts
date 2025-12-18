@@ -51,6 +51,13 @@ export const exportDashboardPdfApi = async (req: Request, res: Response): Promis
       })),
     };
 
+    // Validate data before generating PDF
+    if (typeof dashboardData.totalRevenue !== 'number' || 
+        typeof dashboardData.totalOrders !== 'number') {
+      res.status(400).json(errorResponse(400, 'Invalid dashboard data'));
+      return;
+    }
+
     generateDashboardPDF(dashboardData, res);
   } catch (error: any) {
     const statusCode = error.statusCode || 500;
@@ -121,6 +128,12 @@ export const exportOrderPdfApi = async (req: Request, res: Response): Promise<vo
       total: Number(order.amount || 0),
       status: order.status || 'unknown',
     };
+
+    // Validate order data
+    if (!orderData.id || orderData.items.length === 0) {
+      res.status(400).json(errorResponse(400, 'Invalid order data'));
+      return;
+    }
 
     generateOrderPDF(orderData, res);
   } catch (error: any) {
