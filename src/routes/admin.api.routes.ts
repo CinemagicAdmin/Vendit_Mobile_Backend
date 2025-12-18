@@ -41,6 +41,11 @@ import {
   getMachineUtilizationApi,
   getOrderStatusApi
 } from '../modules/admin/admin-analytics.api.controller.js';
+import {
+  exportDashboardPdfApi,
+  exportOrderPdfApi,
+  exportActivityPdfApi
+} from '../modules/admin/admin-pdf.api.controller.js';
 
 import {
   getCampaignsApi,
@@ -162,6 +167,11 @@ router.get('/analytics/user-growth', getUserGrowthApi);
 router.get('/analytics/product-performance', getProductPerformanceApi);
 router.get('/analytics/machine-utilization', getMachineUtilizationApi);
 router.get('/analytics/order-status', getOrderStatusApi);
+
+// PDF Export
+router.post('/export/dashboard-pdf', exportDashboardPdfApi);
+router.get('/export/order-pdf/:orderId', exportOrderPdfApi);
+router.post('/export/activity-pdf', exportActivityPdfApi);
 
 // Legacy Tools
 router.post('/legacy/text-to-image', generateImageApi);
