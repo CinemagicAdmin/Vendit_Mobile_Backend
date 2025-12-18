@@ -1,15 +1,20 @@
 import { supabase } from '../../libs/supabase.js';
+
 const sumPayments = async () => {
-  const { data, error } = await supabase.from('payments').select('amount');
+  const { data, error } = await supabase
+    .from('payments')
+    .select('amount')
+    .eq('status', 'completed'); // Only count completed payments for accurate revenue
   if (error) throw error;
   return (data ?? []).reduce((sum, row) => sum + Number(row.amount ?? 0), 0);
 };
+
 export const getDashboardMetrics = async () => {
   const [totalUsers, activeUsers, totalRevenue, totalOrders, activeMachines] = await Promise.all([
     supabase.from('users').select('id', { head: true, count: 'exact' }),
     supabase.from('users').select('id', { head: true, count: 'exact' }).eq('status', 1),
     sumPayments(),
-    supabase.from('payments').select('id', { head: true, count: 'exact' }),
+    supabase.from('payments').select('id', { head: true, count: 'exact' }).eq('status', 'completed'), // Only count completed orders
     supabase.from('machines').select('u_id', { head: true, count: 'exact' })
   ]);
   return {
