@@ -91,21 +91,21 @@ export const loginApi = async (req: Request, res: Response) => {
     res.cookie('access_token', accessToken, {
       httpOnly: true,
       secure: isProduction,
-      sameSite: 'strict',
+      sameSite: 'lax', // Changed from 'strict' to allow localhost:3000 -> localhost:4000
       maxAge: 15 * 60 * 1000 // 15 minutes
     });
 
     res.cookie('refresh_token', refreshToken, {
       httpOnly: true,
       secure: isProduction,
-      sameSite: 'strict',
+      sameSite: 'lax', // Changed from 'strict' to allow localhost:3000 -> localhost:4000
       maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
     });
 
     res.cookie('csrf_token', csrfToken, {
       httpOnly: false, // Accessible to JavaScript for CSRF validation
       secure: isProduction,
-      sameSite: 'strict',
+      sameSite: 'lax', // Changed from 'strict' to allow localhost:3000 -> localhost:4000
       maxAge: 24 * 60 * 60 * 1000 // 24 hours
     });
 
