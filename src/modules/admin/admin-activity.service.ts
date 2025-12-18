@@ -4,10 +4,10 @@ export const getActivityLogs = async (params?: {
   page?: number;
   limit?: number;
   admin_id?: string;
+  startDate?: string;
+  endDate?: string;
+  action?: string;
+  entityType?: string;
 }) => {
-  const result = await listActivityLogs(params);
-  return {
-    logs: result.data,
-    meta: result.meta
-  };
+  return await listActivityLogs(params);
 };

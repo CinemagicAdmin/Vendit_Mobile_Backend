@@ -153,8 +153,8 @@ router.post('/notifications/:id/read', markAsReadApi);
 router.post('/notifications/mark-all-read', markAllAsReadApi);
 
 // Cache management
-router.get('/cache/stats', getCacheStatsApi);
-router.post('/cache/clear', clearCacheApi);
+router.get('/cache/stats', handleCacheStats);
+router.post('/cache/clear', handleCacheClear);
 
 // Analytics
 router.get('/analytics/sales-trends', getSalesTrendsApi);
