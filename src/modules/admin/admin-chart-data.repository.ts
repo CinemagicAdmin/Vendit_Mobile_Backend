@@ -7,7 +7,7 @@ export const getRevenueChartData = async (days: number = 30) => {
     .from('payments')
     .select('created_at, amount')
     .gte('created_at', new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString())
-    .eq('status', 'completed') // Only show completed payments
+    .eq('status', 'CAPTURED') // Only show CAPTURED payments (successful transactions)
     .order('created_at', { ascending: true });
 
   if (error) throw error;
@@ -36,7 +36,7 @@ export const getOrdersChartData = async (days: number = 30) => {
     .from('payments')
     .select('created_at')
     .gte('created_at', new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString())
-    .eq('status', 'completed') // Only show completed orders
+    .eq('status', 'CAPTURED') // Only show CAPTURED orders (successful transactions)
     .order('created_at', { ascending: true });
 
   if (error) throw error;

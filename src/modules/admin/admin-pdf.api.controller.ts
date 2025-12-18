@@ -14,7 +14,7 @@ export const exportDashboardPdfApi = async (req: Request, res: Response): Promis
     const { data: payments } = await supabase
       .from('payments')
       .select('amount, created_at, status')
-      .eq('status', 'completed');
+      .eq('status', 'CAPTURED'); // CAPTURED = successful payment in this system
 
     const { data: users } = await supabase
       .from('users')

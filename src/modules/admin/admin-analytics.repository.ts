@@ -13,7 +13,7 @@ export const getSalesTrends = async (period: string = '30d') => {
     .from('payments')
     .select('created_at, amount, status')
     .gte('created_at', startDate.toISOString())
-    .eq('status', 'completed')
+    .eq('status', 'CAPTURED')
     .order('created_at', { ascending: true})
     .limit(5000); // Prevent excessive data transfer
 
