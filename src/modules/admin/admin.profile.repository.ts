@@ -2,7 +2,7 @@ import { supabase } from '../../libs/supabase.js';
 export const getAdminById = async (id) => {
   const { data, error } = await supabase
     .from('admins')
-    .select('id, name, email')
+    .select('id, name, email, avatar_path')
     .eq('id', id)
     .maybeSingle();
   if (error) throw error;
@@ -13,10 +13,11 @@ export const updateAdminProfileInDb = async (id, payload) => {
     .from('admins')
     .update({
       name: payload.name,
+      avatar_path: payload.avatarPath ?? null,
       updated_at: new Date().toISOString()
     })
     .eq('id', id)
-    .select('id, name, email')
+    .select('id, name, email, avatar_path')
     .maybeSingle();
   if (error) throw error;
   return data;
