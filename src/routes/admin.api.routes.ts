@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { requireAdminToken } from '../middleware/admin-auth-api.js';
+import { cookieAuth } from '../middleware/cookie-auth.middleware.js';
 import {
   loginApi,
   getMeApi,
@@ -68,9 +68,9 @@ router.post('/auth/login', loginApi);
 router.post('/auth/refresh', refreshTokenApi); // New: Token refresh
 
 // =============================================================================
-// Protected Routes (require JWT token)
+// Protected Routes (require JWT token via cookies or header)
 // =============================================================================
-router.use(requireAdminToken); // All routes below require authentication
+router.use(cookieAuth); // All routes below require authentication
 
 // Authentication
 router.get('/auth/me', getMeApi);
