@@ -34,6 +34,13 @@ import {
   markAsReadApi,
   markAllAsReadApi
 } from '../modules/admin/admin-notifications.api.controller.js';
+import {
+  getSalesTrendsApi,
+  getUserGrowthApi,
+  getProductPerformanceApi,
+  getMachineUtilizationApi,
+  getOrderStatusApi
+} from '../modules/admin/admin-analytics.api.controller.js';
 
 import {
   getCampaignsApi,
@@ -145,9 +152,16 @@ router.get('/notifications', getNotificationsApi);
 router.post('/notifications/:id/read', markAsReadApi);
 router.post('/notifications/mark-all-read', markAllAsReadApi);
 
-// Cache Management
-router.get('/cache/stats', handleCacheStats);
-router.post('/cache/clear', handleCacheClear);
+// Cache management
+router.get('/cache/stats', getCacheStatsApi);
+router.post('/cache/clear', clearCacheApi);
+
+// Analytics
+router.get('/analytics/sales-trends', getSalesTrendsApi);
+router.get('/analytics/user-growth', getUserGrowthApi);
+router.get('/analytics/product-performance', getProductPerformanceApi);
+router.get('/analytics/machine-utilization', getMachineUtilizationApi);
+router.get('/analytics/order-status', getOrderStatusApi);
 
 // Legacy Tools
 router.post('/legacy/text-to-image', generateImageApi);
