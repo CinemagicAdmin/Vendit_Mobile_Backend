@@ -4,6 +4,7 @@ import app from './app.js';
 import { getConfig } from './config/env.js';
 import { logger } from './config/logger.js';
 import { registerMachineSyncJob } from './modules/machines/machines.scheduler.js';
+import { initializeCacheWarming } from './libs/cache-warming.js';
 process.on('unhandledRejection', (reason) => {
   logger.error({ reason }, 'Unhandled promise rejection');
 });
@@ -49,8 +50,12 @@ try {
   const config = getConfig();
   server = createServer(app);
   registerMachineSyncJob();
-  server.listen(config.port, config.host, () => {
+  
+  server.listen(config.port, config.host, async () => {
     logger.info(`API listening on http://${config.host}:${config.port}`);
+    
+    // Initialize cache warming after server starts
+    await initializeCacheWarming();
   });
   server.on('error', (error) => {
     logger.error({ error }, 'HTTP server failed to start');
