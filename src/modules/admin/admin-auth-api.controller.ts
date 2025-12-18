@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import { randomBytes } from 'crypto';
 import { getConfig } from '../../config/env.js';
 import { authenticateAdmin, changeAdminPassword } from './admin-auth.service.js';
 import { apiError, apiSuccess, errorResponse } from '../../utils/response.js';
@@ -10,14 +11,30 @@ const config = getConfig();
 /**
  * Generate JWT token for admin
  */
-const generateAdminToken = (adminId: string, email: string, name: string | null): string => {
-  return jwt.sign({ adminId, email, name }, config.jwtAccessSecret, {
-    expiresIn: config.accessTokenTtl
+const generateAdminToken = (adminId: string, email: string, name: string | null, role: string = 'admin'): string => {
+  return jwt.sign({ id: adminId, adminId, email, name, role }, config.jwtAccessSecret, {
+    expiresIn: config.accessTokenTtl || '15m'
   });
 };
 
 /**
- * API: Admin login - returns JWT token
+ * Generate refresh token
+ */
+const generateRefreshToken = (adminId: string): string => {
+  return jwt.sign({ id: adminId, adminId, type: 'refresh' }, config.jwtRefreshSecret || config.jwtAccessSecret, {
+    expiresIn: '30d'
+  });
+};
+
+/**
+ * Generate CSRF token
+ */
+const generateCsrfToken = (): string => {
+  return randomBytes(32).toString('hex');
+};
+
+/**
+ * API: Admin login - sets httpOnly cookies (web) or returns token (mobile)
  */
 export const loginApi = async (req: Request, res: Response) => {
   try {
@@ -28,20 +45,69 @@ export const loginApi = async (req: Request, res: Response) => {
     }
 
     const admin = await authenticateAdmin(email, password);
-    const token = generateAdminToken(admin.id, admin.email, admin.name);
+    const accessToken = generateAdminToken(admin.id, admin.email, admin.name, admin.role || 'admin');
+    const refreshToken = generateRefreshToken(admin.id);
+    const csrfToken = generateCsrfToken();
 
     // Log admin login
     await audit.adminLogin(admin.id, admin.email, req);
 
+    // Check if mobile client (backward compatibility)
+    const isMobileClient = req.headers['x-mobile-client'] === 'true';
+
+    if (isMobileClient) {
+      // Mobile: Return tokens in response body (legacy behavior)
+      return res.json(
+        apiSuccess(
+          {
+            token: accessToken,
+            refreshToken,
+            admin: {
+              id: admin.id,
+              email: admin.email,
+              name: admin.name,
+              role: admin.role
+            }
+          },
+          'Login successful'
+        )
+      );
+    }
+
+    // Web: Set httpOnly cookies
+    const isProduction = config.nodeEnv === 'production';
+    
+    res.cookie('access_token', accessToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'strict',
+      maxAge: 15 * 60 * 1000 // 15 minutes
+    });
+
+    res.cookie('refresh_token', refreshToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'strict',
+      maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+    });
+
+    res.cookie('csrf_token', csrfToken, {
+      httpOnly: false, // Accessible to JavaScript for CSRF validation
+      secure: isProduction,
+      sameSite: 'strict',
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    });
+
     return res.json(
       apiSuccess(
         {
-          token,
           admin: {
             id: admin.id,
             email: admin.email,
-            name: admin.name
-          }
+            name: admin.name,
+            role: admin.role
+          },
+          csrfToken // Send CSRF token in response for client to use in headers
         },
         'Login successful'
       )
@@ -82,13 +148,19 @@ export const getMeApi = async (req: Request, res: Response) => {
 };
 
 /**
- * API: Admin logout - client should delete token
+ * API: Admin logout - clears cookies
  */
 export const logoutApi = async (req: Request, res: Response) => {
   const admin = (req as any).admin;
-  if (admin?.adminId) {
-    await audit.adminLogout(admin.adminId, req);
+  if (admin?.adminId || admin?.id) {
+    await audit.adminLogout(admin.adminId || admin.id, req);
   }
+  
+  // Clear all auth cookies
+  res.clearCookie('access_token');
+  res.clearCookie('refresh_token');
+  res.clearCookie('csrf_token');
+  
   return res.json(apiSuccess(null, 'Logout successful'));
 };
 

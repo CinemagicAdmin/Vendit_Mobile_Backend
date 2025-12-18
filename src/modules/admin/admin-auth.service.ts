@@ -4,14 +4,14 @@ import { apiError } from '../../utils/response.js';
 export const authenticateAdmin = async (email, password) => {
   const { data, error } = await supabase
     .from('admins')
-    .select('id, name, email, password')
+    .select('id, name, email, password, role')
     .eq('email', email)
     .maybeSingle();
   if (error) throw error;
   if (!data) throw new apiError(401, 'Invalid credentials');
   const valid = await bcrypt.compare(password, data.password);
   if (!valid) throw new apiError(401, 'Invalid credentials');
-  return { id: data.id, name: data.name, email: data.email };
+  return { id: data.id, name: data.name, email: data.email, role: data.role };
 };
 export const changeAdminPassword = async (adminId, currentPassword, newPassword) => {
   const { data, error } = await supabase
