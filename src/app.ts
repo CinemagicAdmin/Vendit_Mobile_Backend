@@ -6,6 +6,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import path from 'node:path';
 import session from 'express-session';
+import cookieParser from 'cookie-parser';
 import { errorHandler } from './middleware/error-handler.js';
 import { defaultLimiter } from './middleware/rate-limiters.js';
 import { requestLogger } from './middleware/request-logger.js';
@@ -92,6 +93,7 @@ const captureRawBody = (req, _res, buf) => {
 };
 app.use(express.json({ limit: '2mb', verify: captureRawBody }));
 app.use(express.urlencoded({ extended: true, verify: captureRawBody }));
+app.use(cookieParser()); // Parse cookies from requests
 
 // Add correlation ID (must be early)
 app.use(correlationIdMiddleware);
