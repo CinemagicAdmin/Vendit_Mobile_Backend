@@ -12,15 +12,17 @@ import {
 } from './admin.profile.repository.js';
 const ADMIN_BUCKET = 'admin';
 const CATEGORY_BUCKET = 'category-icons';
+
 const buildAdminAvatarUrl = (avatarPath) => {
   if (!avatarPath) return null;
-  const base = process.env.CDN_BASE_URL ?? '';
-  return `${base}/admin/${avatarPath}`;
+  const supabaseUrl = process.env.SUPABASE_URL ?? '';
+  return `${supabaseUrl}/storage/v1/object/public/admin/${avatarPath}`;
 };
+
 const buildCategoryIconUrl = (iconPath) => {
   if (!iconPath) return null;
-  const base = process.env.CDN_BASE_URL ?? '';
-  return `${base}/category-icons/${iconPath}`;
+  const supabaseUrl = process.env.SUPABASE_URL ?? '';
+  return `${supabaseUrl}/storage/v1/object/public/category-icons/${iconPath}`;
 };
 const uploadFile = async ({ bucket, file, prefix }) => {
   if (!file) return null;
