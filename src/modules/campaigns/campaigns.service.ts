@@ -43,7 +43,7 @@ export const fetchLatestCampaign = async (userId) => {
 export const fetchAllCampaigns = async () => {
   // Cache active campaigns for 5 minutes
   const data = await cacheWrap(
-    CacheKeys.campaigns(),
+    CacheKeys.campaigns.active(),
     () => listCampaigns({ limit: 10, activeOnly: true }),
     { ttl: CacheTTL.SHORT } // 5 minutes
   );
@@ -79,7 +79,7 @@ export const createCampaignWithMedia = async (payload) => {
   });
   
   // Invalidate cache
-  await cacheDel(CacheKeys.campaigns());
+  await cacheDel(CacheKeys.campaigns.active());
   
   return ok(
     { ...campaign, image_url: buildImageUrl(campaign?.image_path ?? null) },
@@ -103,7 +103,7 @@ export const updateCampaignWithMedia = async (id, payload) => {
   });
   
   // Invalidate cache
-  await cacheDel(CacheKeys.campaigns());
+  await cacheDel(CacheKeys.campaigns.active());
   
   return ok(
     { ...updated, image_url: buildImageUrl(updated?.image_path ?? null) },
@@ -114,7 +114,7 @@ export const removeCampaign = async (id) => {
   await deleteCampaign(id);
   
   // Invalidate cache
-  await cacheDel(CacheKeys.campaigns());
+  await cacheDel(CacheKeys.campaigns.active());
   
   return ok(null, 'Campaign deleted');
 };

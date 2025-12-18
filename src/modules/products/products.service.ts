@@ -18,7 +18,7 @@ const client = axios.create({
 export const getCategories = async (machineUId) => {
   // Use cache wrapper for categories
   const categories = await cacheWrap(
-    CacheKeys.categories(machineUId),
+    CacheKeys.categories.byMachine(machineUId),
     () => listCategoriesForMachine(machineUId),
     { ttl: CacheTTL.LONG } // 1 hour - categories change infrequently
   );
@@ -83,7 +83,7 @@ const buildProductProperties = (metadata, remote) => {
 export const getProducts = async (machineUId, categoryId) => {
   // Cache the entire product list per machine first
   const slots = await cacheWrap(
-    CacheKeys.products(machineUId),
+    CacheKeys.products.byMachine(machineUId),
     () => listProductsForMachine(machineUId),
     { ttl: CacheTTL.MEDIUM } // 30 minutes
   );

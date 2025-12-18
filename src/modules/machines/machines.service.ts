@@ -190,7 +190,7 @@ export const getMachinesNear = async (lat, lng) => {
 
   // Use cache library for consistency
   const machines = await cacheWrap(
-    CacheKeys.machines(lat, lng, radius),
+    CacheKeys.machines.nearby(lat, lng, radius),
     async () => {
       const allMachines = await listMachines();
       return allMachines
