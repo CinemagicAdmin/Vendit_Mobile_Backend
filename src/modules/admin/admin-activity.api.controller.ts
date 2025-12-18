@@ -4,12 +4,18 @@ import { getActivityLogs } from './admin-activity.service.js';
 
 export const getActivityLogsApi = async (req: Request, res: Response) => {
   try {
-    const { page, limit, admin_id } = req.query;
+    const { page, limit, admin_id, startDate, endDate, action, entityType } = req.query;
+    
     const logs = await getActivityLogs({
       page: page ? parseInt(page as string) : undefined,
       limit: limit ? parseInt(limit as string) : undefined,
-      admin_id: admin_id as string
+      admin_id: admin_id as string,
+      startDate: startDate as string,
+      endDate: endDate as string,
+      action: action as string,
+      entityType: entityType as string
     });
+    
     return res.json(apiSuccess(logs));
   } catch (error: any) {
     const statusCode = error.statusCode || 500;

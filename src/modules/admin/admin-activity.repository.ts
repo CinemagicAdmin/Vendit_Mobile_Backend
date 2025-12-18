@@ -5,6 +5,10 @@ export const listActivityLogs = async (params?: {
   page?: number;
   limit?: number;
   admin_id?: string;
+  startDate?: string;
+  endDate?: string;
+  action?: string;
+  entityType?: string;
 }) => {
   const page = params?.page || 1;
   const limit = params?.limit || 50;
@@ -15,8 +19,27 @@ export const listActivityLogs = async (params?: {
     .select('*', { count: 'exact' })
     .order('created_at', { ascending: false });
 
+  // Filter by admin ID
   if (params?.admin_id) {
     query = query.eq('admin_id', params.admin_id);
+  }
+
+  // Filter by date range
+  if (params?.startDate) {
+    query = query.gte('created_at', params.startDate);
+  }
+  if (params?.endDate) {
+    query = query.lte('created_at', params.endDate);
+  }
+
+  // Filter by action type
+  if (params?.action) {
+    query = query.ilike('action', `%${params.action}%`);
+  }
+
+  // Filter by entity/resource type
+  if (params?.entityType) {
+    query = query.eq('resource_type', params.entityType);
   }
 
   query = query.range(offset, offset + limit - 1);
