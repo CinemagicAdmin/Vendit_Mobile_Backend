@@ -272,12 +272,14 @@ export const listOrders = async (params?: {
   let query = supabase.from('payments').select(
     `
       id,
+      order_reference,
       amount,
       payment_method,
       status,
       created_at,
-      machine:machine_u_id(machine_tag),
-      user:users!payments_user_id_fkey(first_name, last_name)
+      transaction_id,
+      machine:machine_u_id(machine_tag, location_address),
+      user:users!payments_user_id_fkey(first_name, last_name, email, phone_number)
     `,
     { count: 'exact' }
   );
@@ -287,7 +289,7 @@ export const listOrders = async (params?: {
   }
 
   if (params?.search) {
-    query = query.or(`id.ilike.%${params.search}%`);
+    query = query.or(`order_reference.ilike.%${params.search}%,transaction_id.ilike.%${params.search}%`);
   }
 
   query = query.range(offset, offset + limit - 1).order('created_at', { ascending: false });
@@ -311,13 +313,20 @@ export const getOrder = async (orderId) => {
     .select(
       `
       id,
+      order_reference,
       amount,
       payment_method,
       status,
       created_at,
       charge_id,
-      machine:machine_u_id(machine_tag, machine_image_url, location_address),
-      user:users!payments_user_id_fkey(first_name, last_name, phone_number, user_profile)
+      transaction_id,
+      currency,
+      earned_points,
+      redeemed_points,
+      redeemed_amount,
+      user_id,
+      machine:machine_u_id(machine_tag, machine_image_url, location_address, u_id),
+      user:users!payments_user_id_fkey(first_name, last_name, email, phone_number, user_profile)
     `
     )
     .eq('id', orderId)

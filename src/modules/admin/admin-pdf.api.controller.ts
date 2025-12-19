@@ -78,21 +78,30 @@ export const exportOrderPdfApi = async (req: Request, res: Response): Promise<vo
   try {
     const { orderId } = req.params;
 
-    // Fetch order details
+    // Fetch order with ALL details
     const { data: order, error } = await supabase
       .from('payments')
       .select(`
         id,
+        order_reference,
         created_at,
         amount,
         status,
-        user_u_id,
-        payment_products (
+        payment_method,
+        transaction_id,
+        currency,
+        user_id,
+        machine:machine_u_id(
+          machine_tag,
+          location_address
+        ),
+        payment_products(
           quantity,
-          product:product_u_id (
+          unit_price,
+          total_price,
+          product:product_u_id(
             description,
-            brand_name,
-            unit_price
+            brand_name
           )
         )
       `)
@@ -105,39 +114,45 @@ export const exportOrderPdfApi = async (req: Request, res: Response): Promise<vo
     }
 
     // Fetch user separately
-    let customerName: string | undefined;
-    let customerEmail: string | undefined;
-    
-    if (order.user_u_id) {
+    let customerName, customerEmail, customerPhone;
+    if (order.user_id) {
       const { data: user } = await supabase
         .from('users')
-        .select('name, email')
-        .eq('id', order.user_u_id)
+        .select('first_name, last_name, email, phone_number')
+        .eq('id', order.user_id)
         .single();
       
-      customerName = user?.name;
-      customerEmail = user?.email;
+      if (user) {
+        customerName = `${user.first_name || ''} ${user.last_name || ''}`.trim();
+        customerEmail = user.email;
+        customerPhone = user.phone_number;
+      }
     }
 
     const orderData = {
       id: String(order.id),
+      orderReference: order.order_reference || `#${order.id.slice(0, 8)}`,
       date: order.created_at,
       customerName,
       customerEmail,
-      items: (order.payment_products || []).map((pp: any) => ({
+      customerPhone,
+      machine: (order.machine as any)?.[0] ? {
+        name: (order.machine as any)[0].machine_tag,
+        location: (order.machine as any)[0].location_address
+      } : undefined,
+      items: ((order.payment_products as any) || []).map((pp: any) => ({
         name: pp.product?.description || pp.product?.brand_name || 'Unknown Product',
         quantity: pp.quantity || 1,
-        price: Number(pp.product?.unit_price || 0),
+        price: Number(pp.unit_price || 0),
       })),
+      subtotal: Number(order.amount || 0),
+      tax: 0,  // Add tax calculation if needed
       total: Number(order.amount || 0),
+      currency: order.currency || 'KWD',
       status: order.status || 'unknown',
+      paymentMethod: order.payment_method,
+      transactionId: order.transaction_id
     };
-
-    // Validate order data
-    if (!orderData.id || orderData.items.length === 0) {
-      res.status(400).json(errorResponse(400, 'Invalid order data'));
-      return;
-    }
 
     generateOrderPDF(orderData, res);
   } catch (error: any) {

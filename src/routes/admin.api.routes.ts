@@ -46,6 +46,7 @@ import {
   exportOrderPdfApi,
   exportActivityPdfApi
 } from '../modules/admin/admin-pdf.api.controller.js';
+import { exportSalesApi } from '../modules/admin/admin-sales-export.controller.js';
 
 import {
   getCampaignsApi,
@@ -157,18 +158,26 @@ router.get('/notifications', getNotificationsApi);
 router.post('/notifications/:id/read', markAsReadApi);
 router.post('/notifications/mark-all-read', markAllAsReadApi);
 
-// Cache management
+// Cache Management
 router.get('/cache/stats', handleCacheStats);
 router.post('/cache/clear', handleCacheClear);
 
 // Analytics
 router.get('/analytics/sales-trends', getSalesTrendsApi);
+
+// PDF Exports
+router.get('/export/dashboard/pdf', exportDashboardPdfApi);
+router.get('/export/order/:orderId/pdf', exportOrderPdfApi);
+router.get('/export/sales/pdf', exportSalesApi);  // NEW: Sales export
+router.post('/export/activity/pdf', exportActivityPdfApi);
+
+// Legacy Tools
+router.post('/legacy/text-to-image', generateImageApi);
 router.get('/analytics/user-growth', getUserGrowthApi);
 router.get('/analytics/product-performance', getProductPerformanceApi);
 router.get('/analytics/machine-utilization', getMachineUtilizationApi);
 router.get('/analytics/order-status', getOrderStatusApi);
 
-// PDF Export
 router.post('/export/dashboard-pdf', exportDashboardPdfApi);
 router.get('/export/order-pdf/:orderId', exportOrderPdfApi);
 router.post('/export/activity-pdf', exportActivityPdfApi);
