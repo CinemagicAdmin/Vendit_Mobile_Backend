@@ -80,6 +80,8 @@ export const getUserGrowth = async (period: string = '30d') => {
  * @param limit - Number of products to return
  */
 export const getProductPerformance = async (limit: number = 10) => {
+  // Limit query to recent payment_products for performance
+  // Fetching last 50k records should cover most use cases
   const { data, error } = await supabase
     .from('payment_products')
     .select(`
@@ -90,7 +92,9 @@ export const getProductPerformance = async (limit: number = 10) => {
         brand_name,
         unit_price
       )
-    `);
+    `)
+    .order('created_at', { ascending: false })
+    .limit(50000); // Limit to recent 50k payment products
 
   if (error) throw error;
 

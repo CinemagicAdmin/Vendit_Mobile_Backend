@@ -10,19 +10,23 @@ import { supabase } from '../../libs/supabase.js';
  */
 export const exportDashboardPdfApi = async (req: Request, res: Response): Promise<void> => {
   try {
-    // Fetch dashboard data
+    // Fetch dashboard data with reasonable limits
     const { data: payments } = await supabase
       .from('payments')
       .select('amount, created_at, status')
-      .eq('status', 'CAPTURED'); // CAPTURED = successful payment in this system
+      .eq('status', 'CAPTURED') // CAPTURED = successful payment in this system
+      .order('created_at', { ascending: false })
+      .limit(10000); // Limit to last 10k payments for performance
 
     const { data: users } = await supabase
       .from('users')
-      .select('id');
+      .select('id')
+      .limit(50000); // Reasonable limit for user count
 
     const { data: machines } = await supabase
       .from('machines')
-      .select('machine_operation_state');
+      .select('machine_operation_state')
+      .limit(5000); // Reasonable limit for machine count
 
     const totalRevenue = (payments || []).reduce((sum, p) => sum + Number(p.amount || 0), 0);
     const totalOrders = (payments || []).length;
@@ -151,11 +155,12 @@ export const exportActivityPdfApi = async (req: Request, res: Response): Promise
   try {
     const { startDate, endDate, action, entityType } = req.body;
 
-    // Build query
+    // Build query with limit
     let query = supabase
       .from('admin_activity_logs')
       .select('admin_name, action, entity, entity_id, created_at')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(5000); // Limit to 5000 most recent logs
 
     if (startDate) {
       query = query.gte('created_at', startDate);

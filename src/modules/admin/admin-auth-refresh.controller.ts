@@ -115,7 +115,11 @@ export const refreshTokenApi = async (req: Request, res: Response) => {
     const newAccessToken = generateAccessToken(admin.id, admin.email, admin.name, admin.role);
     const newRefreshToken = generateRefreshToken(admin.id);
 
-    // Store new session in Redis
+    // IMPORTANT: Revoke old session FIRST to prevent race condition
+    // This ensures user can't have 2 valid tokens simultaneously
+    await revokeSession(admin.id, refreshToken);
+
+    // Then store new session
     await setSession(admin.id, newRefreshToken, {
       userId: admin.id,
       createdAt: Date.now(),
@@ -123,9 +127,6 @@ export const refreshTokenApi = async (req: Request, res: Response) => {
       ipAddress: req.ip,
       userAgent: req.headers['user-agent']
     });
-
-    // Revoke old refresh token (token rotation)
-    await revokeSession(admin.id, refreshToken);
 
     // Set new cookies
     const isProduction = config.nodeEnv === 'production';
