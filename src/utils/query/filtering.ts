@@ -5,7 +5,7 @@
 /**
  * Apply search filter across multiple fields
  */
-export const applySearch = <T>(
+export const applySearch = (
   query: any,
   search: string | undefined,
   fields: string[]
@@ -18,7 +18,7 @@ export const applySearch = <T>(
 /**
  * Apply status filter
  */
-export const applyStatusFilter = <T>(
+export const applyStatusFilter = (
   query: any,
   status: number | string | undefined,
   field: string = 'status'
@@ -30,7 +30,7 @@ export const applyStatusFilter = <T>(
 /**
  * Apply date range filter
  */
-export const applyDateRange = <T>(
+export const applyDateRange = (
   query: any,
   startDate?: string,
   endDate?: string,
@@ -48,7 +48,7 @@ export const applyDateRange = <T>(
 /**
  * Apply ordering
  */
-export const applyOrdering = <T>(
+export const applyOrdering = (
   query: any,
   orderBy: string = 'created_at',
   ascending: boolean = false
