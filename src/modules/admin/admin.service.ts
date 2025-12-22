@@ -120,11 +120,13 @@ export const getAdminProducts = async (params?: {
   return {
     products: result.data.map((item) => {
       const product = unwrapSingle(item.product);
+      const categoryData = unwrapSingle(product?.category);
       return {
         product_u_id: product?.product_u_id || '',
         description: product?.description || 'N/A',
         brand_name: product?.brand_name || 'N/A',
-        category: 'General' // Can be enhanced if category data is available
+        image: product?.product_image_url || null,
+        category: categoryData?.category_name || 'Uncategorized'
       };
     }),
     meta: result.meta
@@ -135,6 +137,7 @@ export const getAdminOrders = async (params?: {
   limit?: number;
   status?: string;
   search?: string;
+  userId?: string;
 }) => {
   const result = await listOrders(params);
   return {

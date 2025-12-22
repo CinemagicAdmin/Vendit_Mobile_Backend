@@ -192,12 +192,13 @@ export const getProductDetailsApi = async (req: Request, res: Response) => {
  */
 export const getOrdersApi = async (req: Request, res: Response) => {
   try {
-    const { page, limit, status, search } = req.query;
+    const { page, limit, status, search, userId } = req.query;
     const result = await getAdminOrders({
       page: page ? parseInt(page as string) : undefined,
       limit: limit ? parseInt(limit as string) : undefined,
       status: status as string,
-      search: search as string
+      search: search as string,
+      userId: userId as string
     });
     return res.json(apiSuccess(result));
   } catch (error: any) {

@@ -36,7 +36,8 @@ export const listProducts = async (params?: ListProductsParams) => {
 
   let query = supabase.from('machine_slots').select(`
     product:product_u_id(
-      product_u_id, description, product_image_url, brand_name
+      product_u_id, description, product_image_url, brand_name,
+      category:category_id(category_name)
     ),
     quantity, machine_u_id
   `, { count: 'exact' });

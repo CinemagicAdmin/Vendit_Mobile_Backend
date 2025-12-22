@@ -9,6 +9,7 @@ import { applyStatusFilter } from '../../../utils/query/filtering.js';
 export interface ListOrdersParams extends PaginationParams {
   status?: string;
   search?: string;
+  userId?: string;
 }
 
 /**
@@ -25,6 +26,11 @@ export const listOrders = async (params?: ListOrdersParams) => {
 
   // Apply filters
   query = applyStatusFilter(query, params?.status);
+  
+  // Filter by user if specified
+  if (params?.userId) {
+    query = query.eq('user_id', params.userId);
+  }
   
   if (params?.search) {
     query = query.or(`order_reference.ilike.%${params.search}%,transaction_id.ilike.%${params.search}%`);
