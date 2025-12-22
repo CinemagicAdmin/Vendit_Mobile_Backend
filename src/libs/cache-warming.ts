@@ -30,6 +30,29 @@ export const initializeCacheWarming = async (): Promise<void> => {
       results.staticContent = false;
     }
 
+    // Warm products cache (NEW)
+    try {
+      const { getCategories } = await import('../modules/products/products.service.js');
+      // Warm by fetching categories for a common machine (triggers product cache)
+      await getCategories('default'); // This will cache categories
+      results.products = true;
+      logger.info('Products/Categories cache warmed');
+    } catch (error) {
+      logger.warn({ error }, 'Failed to warm products cache');
+      results.products = false;
+    }
+
+    // Warm all categories (NEW)
+    try {
+      const { getAdminCategories } = await import('../modules/admin/admin.profile.service.js');
+      await getAdminCategories();
+      results.categories = true;
+      logger.info('All categories cache warmed');
+    } catch (error) {
+      logger.warn({ error }, 'Failed to warm all categories cache');
+      results.categories = false;
+    }
+
     const duration = Date.now() - startTime;
     const successCount = Object.values(results).filter(Boolean).length;
     const totalCount = Object.keys(results).length;
