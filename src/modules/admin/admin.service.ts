@@ -140,15 +140,23 @@ export const getAdminOrders = async (params?: {
   return {
     orders: result.data.map((order) => {
       const user = unwrapSingle(order.user);
+      const machine = unwrapSingle(order.machine);
       const userName = user
         ? [user.first_name, user.last_name].filter(Boolean).join(' ')
         : 'Unknown';
 
       return {
         order_id: order.id,
+        order_reference: order.order_reference || `ORD-${order.id.slice(0, 8).toUpperCase()}`,
         user_name: userName,
+        user_email: user?.email || null,
+        user_phone: user?.phone_number || null,
+        machine_tag: machine?.machine_tag || 'N/A',
+        machine_location: machine?.location_address || 'N/A',
         total_amount: order.amount,
+        payment_method: order.payment_method || 'N/A',
         status: order.status || 'pending',
+        transaction_id: order.transaction_id || null,
         created_at: order.created_at
       };
     }),
@@ -159,7 +167,42 @@ export const getAdminOrder = async (orderId) => {
   const order = await getOrder(orderId);
   if (!order) throw new apiError(404, 'Order not found');
   const items = await listOrderProducts(orderId);
-  return { order, items };
+  
+  const user = unwrapSingle(order.user);
+  const machine = unwrapSingle(order.machine);
+  
+  return {
+    order_id: order.id,
+    order_reference: order.order_reference || `ORD-${order.id.slice(0, 8).toUpperCase()}`,
+    user_name: user ? [user.first_name, user.last_name].filter(Boolean).join(' ') : 'Guest',
+    user_email: user?.email || null,
+    user_phone: user?.phone_number || null,
+    user_avatar: user?.user_profile || null,
+    machine_tag: machine?.machine_tag || 'N/A',
+    machine_location: machine?.location_address || 'N/A',
+    machine_image: machine?.machine_image_url || null,
+    total_amount: order.amount,
+    payment_method: order.payment_method || 'N/A',
+    status: order.status || 'pending',
+    currency: order.currency || 'KWD',
+    transaction_id: order.transaction_id || null,
+    charge_id: order.charge_id || null,
+    earned_points: order.earned_points || 0,
+    redeemed_points: order.redeemed_points || 0,
+    redeemed_amount: order.redeemed_amount || 0,
+    created_at: order.created_at,
+    items: items.map((item) => {
+      const product = unwrapSingle(item.product);
+      return {
+        product_id: product?.product_u_id || '',
+        product_name: product?.description || 'Unknown Product',
+        product_image: product?.product_image_url || null,
+        quantity: item.quantity || 1,
+        dispensed_quantity: item.dispensed_quantity || 0,
+        price: product?.cost_price || 0
+      };
+    })
+  };
 };
 export const getAdminFeedback = async (params?: {
   page?: number;
