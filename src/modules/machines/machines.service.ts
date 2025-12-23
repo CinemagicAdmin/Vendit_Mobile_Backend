@@ -228,24 +228,32 @@ const getWebSocketConstructor = () => {
 };
 
 // Constants for dispense socket
-const DISPENSE_TIMEOUT_MS = 30000; // 30 seconds (increased for cold starts)
-const MAX_RETRIES = 2;
-const RETRY_DELAY_MS = 2000;
+const CONNECTION_TIMEOUT_MS = 10000; // 10 seconds to connect
+const SEND_TIMEOUT_MS = 5000; // 5 seconds after sending to consider success
 
 /**
- * Attempt a single dispense command via WebSocket
+ * Dispatch dispense command - fire-and-forget pattern
+ * Returns success once command is sent (server doesn't send acknowledgements)
  */
-const attemptDispense = (machineId: string, slotNumber: string, attempt: number): Promise<any> => {
+export const dispatchDispenseCommand = async (machineId: string, slotNumber: string) => {
+  if (!dispenseSocketUrl) {
+    throw new apiError(500, 'Dispense socket URL is not configured');
+  }
+  if (!machineId || !slotNumber) {
+    throw new apiError(400, 'machineId and slotNumber are required');
+  }
+
   const payload = JSON.stringify({ type: 'dispense', machineId, slotNumber });
   
   logger.info(
-    { socketUrl: dispenseSocketUrl, machineId, slotNumber, attempt },
+    { socketUrl: dispenseSocketUrl, machineId, slotNumber },
     'Dispatching dispense command'
   );
 
   return new Promise((resolve, reject) => {
     const WS = getWebSocketConstructor();
     let settled = false;
+    let commandSent = false;
     let socket: WebSocket;
 
     try {
@@ -256,10 +264,12 @@ const attemptDispense = (machineId: string, slotNumber: string, attempt: number)
       return;
     }
 
-    const cleanup = (error: Error | null) => {
+    const cleanup = (error: Error | null, success: boolean = false) => {
       if (settled) return;
       settled = true;
-      clearTimeout(timeoutId);
+      clearTimeout(connectionTimeoutId);
+      clearTimeout(sendTimeoutId);
+      
       try {
         if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
           socket.close();
@@ -267,25 +277,38 @@ const attemptDispense = (machineId: string, slotNumber: string, attempt: number)
       } catch (closeError) {
         logger.warn({ closeError }, 'Failed to close dispense socket cleanly');
       }
+      
       if (error) {
         reject(error);
       } else {
-        resolve(ok({ acknowledged: true }, 'Dispense command forwarded'));
+        resolve(ok({ acknowledged: true, commandSent: success }, 'Dispense command sent'));
       }
     };
 
-    const timeoutId = setTimeout(() => {
-      logger.error(
-        { machineId, slotNumber, attempt, timeoutMs: DISPENSE_TIMEOUT_MS },
-        'Dispense socket timed out'
-      );
-      cleanup(new apiError(504, `Dispense socket timeout after ${DISPENSE_TIMEOUT_MS / 1000}s`));
-    }, DISPENSE_TIMEOUT_MS);
+    // Timeout for connection
+    const connectionTimeoutId = setTimeout(() => {
+      if (!commandSent) {
+        logger.error({ machineId, slotNumber }, 'Dispense socket connection timed out');
+        cleanup(new apiError(504, 'Failed to connect to dispense server'));
+      }
+    }, CONNECTION_TIMEOUT_MS);
+
+    // After sending, wait briefly then return success (fire-and-forget)
+    let sendTimeoutId: ReturnType<typeof setTimeout>;
 
     const handleOpen = () => {
       logger.info({ machineId, slotNumber }, 'WebSocket connected, sending dispense command');
       try {
         socket.send(payload);
+        commandSent = true;
+        logger.info({ machineId, slotNumber }, 'Dispense command sent successfully');
+        
+        // Return success after short delay (fire-and-forget)
+        sendTimeoutId = setTimeout(() => {
+          logger.info({ machineId, slotNumber }, 'Dispense command completed (fire-and-forget)');
+          cleanup(null, true);
+        }, SEND_TIMEOUT_MS);
+        
       } catch (error) {
         logger.error({ error, machineId, slotNumber }, 'Failed to send dispense payload');
         cleanup(new apiError(502, 'Failed to send dispense payload'));
@@ -293,29 +316,39 @@ const attemptDispense = (machineId: string, slotNumber: string, attempt: number)
     };
 
     const handleMessage = (event: MessageEvent) => {
+      // If server does respond, log it and complete immediately
       logger.info(
         { machineId, slotNumber, data: event?.data },
         'Dispense acknowledgement received'
       );
-      cleanup(null);
+      cleanup(null, true);
     };
 
     const handleError = (event: Event) => {
-      const errorMsg = event instanceof Error ? event.message : 'Dispense socket error';
-      logger.error({ event, machineId, slotNumber }, 'Dispense socket error');
-      cleanup(new apiError(502, errorMsg));
+      if (!commandSent) {
+        // Only treat as error if we haven't sent the command yet
+        const errorMsg = event instanceof Error ? event.message : 'Dispense socket error';
+        logger.error({ event, machineId, slotNumber }, 'Dispense socket error');
+        cleanup(new apiError(502, errorMsg));
+      } else {
+        // If command was sent, just log the error but consider it successful
+        logger.warn({ machineId, slotNumber }, 'Socket error after command sent (ignoring)');
+      }
     };
 
     const handleClose = (event: CloseEvent) => {
       if (!settled) {
-        // If socket closed before we got a response, it might be a connection issue
-        if (event.code !== 1000) {
+        if (commandSent) {
+          // Command was sent, consider it successful
+          logger.info({ machineId, code: event.code }, 'Socket closed after sending command');
+          cleanup(null, true);
+        } else if (event.code !== 1000) {
           logger.warn(
             { machineId, code: event.code, reason: event.reason },
-            'Socket closed unexpectedly'
+            'Socket closed unexpectedly before sending'
           );
+          cleanup(new apiError(502, 'Connection closed before sending command'));
         }
-        cleanup(null); // Consider successful if we sent the command
       }
     };
 
@@ -325,48 +358,3 @@ const attemptDispense = (machineId: string, slotNumber: string, attempt: number)
     socket.onclose = handleClose;
   });
 };
-
-/**
- * Dispatch dispense command with retry logic
- */
-export const dispatchDispenseCommand = async (machineId: string, slotNumber: string) => {
-  if (!dispenseSocketUrl) {
-    throw new apiError(500, 'Dispense socket URL is not configured');
-  }
-  if (!machineId || !slotNumber) {
-    throw new apiError(400, 'machineId and slotNumber are required');
-  }
-
-  let lastError: Error | null = null;
-
-  for (let attempt = 1; attempt <= MAX_RETRIES + 1; attempt++) {
-    try {
-      return await attemptDispense(machineId, slotNumber, attempt);
-    } catch (error) {
-      lastError = error as Error;
-      logger.warn(
-        { machineId, slotNumber, attempt, maxRetries: MAX_RETRIES + 1, error: lastError.message },
-        'Dispense attempt failed'
-      );
-
-      // Don't retry on client errors (4xx)
-      if (error instanceof apiError && error.statusCode >= 400 && error.statusCode < 500) {
-        throw error;
-      }
-
-      // Retry after delay (except on last attempt)
-      if (attempt <= MAX_RETRIES) {
-        logger.info({ machineId, delayMs: RETRY_DELAY_MS }, 'Retrying dispense command...');
-        await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
-      }
-    }
-  }
-
-  // All retries exhausted
-  logger.error(
-    { machineId, slotNumber, attempts: MAX_RETRIES + 1 },
-    'All dispense attempts failed'
-  );
-  throw lastError ?? new apiError(504, 'Dispense failed after all retries');
-};
-
