@@ -219,12 +219,20 @@ export const getMachineDetail = async (machineUId) => {
   const slots = await getMachineSlots(machineUId);
   return { machine, slots };
 };
-const getWebSocketConstructor = () => {
-  const WS = globalThis.WebSocket;
-  if (!WS) {
-    throw new apiError(500, 'WebSocket client is unavailable in this runtime');
+
+// Import ws for Node.js environments without native WebSocket
+import WebSocketNode from 'ws';
+
+const getWebSocketConstructor = (): typeof WebSocket => {
+  // Use native WebSocket if available (Node 21+, browsers)
+  if (typeof globalThis.WebSocket !== 'undefined') {
+    return globalThis.WebSocket;
   }
-  return WS;
+  // Fall back to 'ws' package for older Node.js / Cloud Run
+  if (WebSocketNode) {
+    return WebSocketNode as unknown as typeof WebSocket;
+  }
+  throw new apiError(500, 'WebSocket client is unavailable in this runtime');
 };
 
 // Constants for dispense socket
