@@ -123,24 +123,6 @@ app.use(flash);
 // Expose metrics endpoint
 app.use('/metrics', metricsRoutes);
 
-// Health check endpoint
-app.get('/health', (_req, res) => {
-  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
-});
-
-// Test IP endpoint (for debugging/whitelisting)
-app.get('/test-ip', async (_req, res) => {
-  try {
-    const response = await fetch('https://ifconfig.me');
-    const ip = await response.text();
-    res.json({ ip: ip.trim(), timestamp: new Date().toISOString() });
-  } catch (err) {
-    const error = err as Error;
-    logger.error({ error }, 'Failed to fetch public IP');
-    res.status(500).json({ error: error.message });
-  }
-});
-
 app.use('/api', routes);
 
 app.use(errorHandler);
