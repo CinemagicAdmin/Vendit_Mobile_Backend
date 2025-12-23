@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { redis } from '../../libs/redis.js';
 import { logger } from '../../config/logger.js';
+import { getConfig } from '../../config/env.js';
 import {
   createUser,
   getUserById,
@@ -14,23 +15,24 @@ const OTP_TTL_SECONDS = 5 * 60;
 const generateOtp = () => Math.floor(1000 + Math.random() * 9000).toString();
 const otpCacheKey = (phone) => `otp:${phone}`;
 const sendOtp = async (phone, otp) => {
-  const smsDriver = (process.env.SMS_DRIVER ?? '').toLowerCase();
+  const config = getConfig();
   const shouldMock =
-    smsDriver === 'log' || (process.env.NODE_ENV !== 'production' && smsDriver !== 'remote');
+    config.smsDriver === 'log' || (config.nodeEnv !== 'production' && config.smsDriver !== 'remote');
+  
   if (shouldMock) {
-    logger.info({ phone, otp }, 'Mock OTP dispatched');
+    logger.info({ phone, otp }, 'Mock OTP dispatched (SMS_DRIVER=log or dev mode)');
     return true;
   }
+  
   try {
     // SMSBox API integration
-    const smsApiUrl =
-      process.env.SMS_API_URL ??
-      'http://smsbox.com/smsgateway/services/messaging.asmx/Http_SendSMS';
+    logger.info({ phone, driver: config.smsDriver }, 'Sending OTP via SMS provider');
+    
     const params = new URLSearchParams({
-      username: process.env.SMS_USERNAME ?? '',
-      password: process.env.SMS_PASSWORD ?? '',
-      customerid: process.env.SMS_CUSTOMER_ID ?? '',
-      sendertext: process.env.SMS_SENDER ?? 'VEND IT',
+      username: config.smsUsername,
+      password: config.smsPassword,
+      customerid: config.smsCustomerId,
+      sendertext: config.smsSender,
       messagebody: `Your OTP is: ${otp}`,
       recipientnumbers: phone.replace(/^\+/, ''), // Remove + prefix
       defdate: '', // Send immediately
@@ -38,17 +40,21 @@ const sendOtp = async (phone, otp) => {
       isflash: 'false'
     });
 
-    const { status } = await axios.get(`${smsApiUrl}?${params.toString()}`, {
+    const { status, data } = await axios.get(`${config.smsApiUrl}?${params.toString()}`, {
       timeout: 10000 // Increased timeout for SMS gateway
     });
+
+    logger.info({ status, response: data }, 'SMS API response');
 
     if (status !== 200) {
       throw new apiError(502, 'OTP provider failure');
     }
+    
+    logger.info({ phone }, 'SMS sent successfully');
     return false;
   } catch (error) {
-    logger.error({ error }, 'SMS sending failed');
-    if (process.env.ALLOW_SMS_FALLBACK === 'true') {
+    logger.error({ error, phone }, 'SMS sending failed');
+    if (config.allowSmsFallback) {
       logger.warn({ phone, otp }, 'Falling back to logged OTP due to provider failure');
       return true;
     }

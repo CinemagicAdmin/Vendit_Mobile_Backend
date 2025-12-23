@@ -116,7 +116,18 @@ const schema = z.object({
   remoteMachineBaseUrl: z.string().url(),
   remoteMachineApiKey: z.string(),
   remoteMachinePageSize: z.coerce.number().default(100),
-  dispenseSocketUrl: z.string().url().default('wss://central-6vfl.onrender.com')
+  dispenseSocketUrl: z.string().url().default('wss://central-6vfl.onrender.com'),
+  // SMS Provider Configuration
+  smsDriver: z.enum(['log', 'remote']).default('log'),
+  smsApiUrl: z
+    .string()
+    .url()
+    .default('http://smsbox.com/smsgateway/services/messaging.asmx/Http_SendSMS'),
+  smsUsername: z.string().default(''),
+  smsPassword: z.string().default(''),
+  smsCustomerId: z.string().default(''),
+  smsSender: z.string().default('VEND IT'),
+  allowSmsFallback: z.coerce.boolean().default(false)
 });
 let cachedConfig = null;
 export const getConfig = () => {
@@ -175,7 +186,15 @@ export const getConfig = () => {
       process.env.REMOTE_MACHINE_API_KEY ?? (isTest ? 'stub-remote-api-key' : undefined),
     remoteMachinePageSize: sanitizeNumberEnv(process.env.REMOTE_MACHINE_PAGE_SIZE),
     dispenseSocketUrl: process.env.DISPENSE_SOCKET_URL,
-    cookieSecret: process.env.COOKIE_SECRET ?? (isTest ? 'test-session-secret' : undefined)
+    cookieSecret: process.env.COOKIE_SECRET ?? (isTest ? 'test-session-secret' : undefined),
+    // SMS Configuration
+    smsDriver: process.env.SMS_DRIVER ?? (isTest || isDev ? 'log' : undefined),
+    smsApiUrl: process.env.SMS_API_URL,
+    smsUsername: process.env.SMS_USERNAME ?? '',
+    smsPassword: process.env.SMS_PASSWORD ?? '',
+    smsCustomerId: process.env.SMS_CUSTOMER_ID ?? '',
+    smsSender: process.env.SMS_SENDER ?? 'VEND IT',
+    allowSmsFallback: process.env.ALLOW_SMS_FALLBACK ?? (isTest || isDev ? 'true' : 'false')
   });
   if (!parsed.success) {
     throw new Error(`Invalid environment configuration: ${parsed.error.message}`);
