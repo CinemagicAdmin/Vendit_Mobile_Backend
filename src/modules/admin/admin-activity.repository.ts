@@ -48,16 +48,45 @@ export const listActivityLogs = async (params?: {
   if (error) throw error;
 
   // Transform to match frontend ActivityLog type
-  const logs = (data ?? []).map((log: any) => ({
-    id: log.id,
-    admin_name: log.details?.admin_name || 'System',
-    action: log.action?.split('.')[1] || log.action,
-    entity: log.resource_type,
-    entity_id: log.resource_id,
-    details: typeof log.details === 'object' ? JSON.stringify(log.details) : log.details,
-    ip_address: log.ip_address,
-    created_at: log.created_at
-  }));
+  const logs = (data ?? []).map((log: any) => {
+    // Parse details if it's a string (Supabase sometimes returns JSONB as string)
+    let parsedDetails;
+    try {
+      if (typeof log.details === 'string') {
+        parsedDetails = JSON.parse(log.details);
+      } else if (typeof log.details === 'object') {
+        parsedDetails = log.details;
+      } else {
+        parsedDetails = {};
+      }
+    } catch {
+      parsedDetails = {};
+    }
+
+    // Extract admin name from parsed details (handles both admin_name and adminName)
+    const adminName = parsedDetails?.adminName || parsedDetails?.admin_name || 'System';
+
+    // Format details for display
+    let formattedDetails = '';
+    if (parsedDetails && Object.keys(parsedDetails).length > 0) {
+      // Create a readable summary from details
+      const detailParts = [];
+      if (parsedDetails.action) detailParts.push(parsedDetails.action);
+      if (parsedDetails.message) detailParts.push(parsedDetails.message);
+      formattedDetails = detailParts.length > 0 ? detailParts.join(' - ') : JSON.stringify(parsedDetails);
+    }
+
+    return {
+      id: log.id,
+      admin_name: adminName,
+      action: log.action?.split('.')[1] || log.action,
+      entity: log.resource_type,
+      entity_id: log.resource_id,
+      details: formattedDetails || '',
+      ip_address: log.ip_address,
+      created_at: log.created_at
+    };
+  });
 
   return {
     data: logs,
