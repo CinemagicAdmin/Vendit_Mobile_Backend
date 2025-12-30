@@ -6,7 +6,7 @@ export const getActivityLogsApi = async (req: Request, res: Response) => {
   try {
     const { page, limit, admin_id, startDate, endDate, action, entityType } = req.query;
     
-    const logs = await getActivityLogs({
+    const result = await getActivityLogs({
       page: page ? parseInt(page as string) : undefined,
       limit: limit ? parseInt(limit as string) : undefined,
       admin_id: admin_id as string,
@@ -16,7 +16,8 @@ export const getActivityLogsApi = async (req: Request, res: Response) => {
       entityType: entityType as string
     });
     
-    return res.json(apiSuccess(logs));
+    // Frontend expects: { data: { logs: [...], meta: {...} } }
+    return res.json(apiSuccess({ logs: result.data, meta: result.meta }));
   } catch (error: any) {
     const statusCode = error.statusCode || 500;
     return res
