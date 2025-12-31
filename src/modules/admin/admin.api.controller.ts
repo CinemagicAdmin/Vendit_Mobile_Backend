@@ -70,12 +70,23 @@ export const getUserDetailsApi = async (req: Request, res: Response) => {
 export const deleteUserApi = async (req: Request, res: Response) => {
   try {
     const admin = (req as any).admin;
+    
+    // Get user details before deletion for audit log
+    const userDetails = await getAdminUserDetails(req.params.userId);
+    const userName = userDetails?.user?.name || 'Unknown User';
+    const userEmail = userDetails?.user?.email || '';
+    
     await deleteAdminUser(req.params.userId);
 
-    // Log user deletion
+    // Log user deletion with complete context
     await audit.userDeleted(
       req.params.userId,
-      { deletedBy: admin?.adminId, adminName: admin?.name },
+      { 
+        adminName: admin?.name || admin?.email,
+        userName,
+        userEmail,
+        action: 'deleted'
+      },
       req
     );
 
@@ -99,16 +110,22 @@ export const suspendUserApi = async (req: Request, res: Response) => {
       throw new apiError(400, 'Invalid status value. Must be 0 or 1');
     }
 
+    // Get user details for audit log
+    const userDetails = await getAdminUserDetails(req.params.userId);
+    const userName = userDetails?.user?.name || 'Unknown User';
+    const userEmail = userDetails?.user?.email || '';
+
     await toggleUserStatus(req.params.userId, status);
     const message = status === 1 ? 'User unsuspended successfully' : 'User suspended successfully';
 
-    // Log user status change
+    // Log user status change with complete context
     await audit.userUpdated(
       req.params.userId,
       {
         action: status === 1 ? 'unsuspended' : 'suspended',
-        updatedBy: admin?.adminId,
-        adminName: admin?.name
+        adminName: admin?.name || admin?.email,
+        userName,
+        userEmail
       },
       req
     );

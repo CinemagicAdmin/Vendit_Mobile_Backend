@@ -71,7 +71,15 @@ export const listActivityLogs = async (params?: {
     if (parsedDetails && Object.keys(parsedDetails).length > 0) {
       const detailParts = [];
       
-      // Add action if present (e.g., "suspended", "unsuspended")
+      // Show affected user info (who was deleted/suspended)
+      if (parsedDetails.userName) {
+        detailParts.push(`User: ${parsedDetails.userName}`);
+      }
+      if (parsedDetails.userEmail) {
+        detailParts.push(`Email: ${parsedDetails.userEmail}`);
+      }
+      
+      // Add action if present (e.g., "suspended", "unsuspended", "deleted")
       if (parsedDetails.action) {
         detailParts.push(`Action: ${parsedDetails.action}`);
       }
@@ -81,26 +89,18 @@ export const listActivityLogs = async (params?: {
         detailParts.push(`Message: ${parsedDetails.message}`);
       }
       
-      // Add deletedBy/updatedBy information
-      if (parsedDetails.deletedBy) {
-        detailParts.push(`Deleted by: ${parsedDetails.deletedBy}`);
-      }
-      if (parsedDetails.updatedBy) {
-        detailParts.push(`Updated by: ${parsedDetails.updatedBy}`);
-      }
-      
-      // Add any email if present
-      if (parsedDetails.email) {
+      // Add any other email if present (for login events)
+      if (parsedDetails.email && !parsedDetails.userEmail) {
         detailParts.push(`Email: ${parsedDetails.email}`);
       }
       
-      // If we have formatted parts, use them; otherwise show full JSON for debugging
+      // If we have formatted parts, use them; otherwise show relevant fields
       if (detailParts.length > 0) {
         formattedDetails = detailParts.join(' | ');
       } else {
-        // Show all other fields in a readable format
+        // Show all other fields except internal IDs
         formattedDetails = Object.entries(parsedDetails)
-          .filter(([key]) => !['adminName', 'admin_name'].includes(key))
+          .filter(([key]) => !['adminName', 'admin_name', 'deletedBy', 'updatedBy'].includes(key))  
           .map(([key, value]) => `${key}: ${value}`)
           .join(' | ');
       }
