@@ -44,11 +44,20 @@ const getClientInfo = (req?: Request) => {
 export const auditLog = async (entry: AuditLogEntry, req?: Request): Promise<void> => {
   const { ipAddress, userAgent } = getClientInfo(req);
 
+  // Extract admin ID from request if not provided in entry
+  let adminId = entry.adminId;
+  if (!adminId && req) {
+    const admin = (req as any).admin;
+    if (admin) {
+      adminId = admin.adminId || admin.id;
+    }
+  }
+
   // admin_id is now UUID, use directly without conversion
   const logEntry = {
     action: entry.action,
     user_id: entry.userId ?? null,
-    admin_id: entry.adminId ?? null,  // UUID - no conversion needed
+    admin_id: adminId ?? null,  // UUID from entry or extracted from req.admin
     resource_type: entry.resourceType,
     resource_id: entry.resourceId ?? null,
     details: entry.details ?? null,
