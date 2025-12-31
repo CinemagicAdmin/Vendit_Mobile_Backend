@@ -21,10 +21,10 @@ export const getSessionsApi = async (req: Request, res: Response) => {
 
     // Transform sessions for client
     const clientSessions = sessions.map((session) => {
-      const currentTokenHash = req.cookies?.refresh_token 
+      const currentTokenHash = req.cookies?.refresh_token
         ? createHash('sha256').update(req.cookies.refresh_token).digest('hex')
         : null;
-        
+
       return {
         id: session.refreshTokenHash.slice(0, 16), // Shortened hash as ID
         deviceInfo: session.deviceInfo || 'unknown',
@@ -76,7 +76,7 @@ export const revokeSessionApi = async (req: Request, res: Response) => {
     // We can't revoke without the actual refresh token
     // This endpoint is more for showing sessions
     // Actual revocation happens via logout or token refresh
-    
+
     return res.json(
       apiSuccess(
         null,

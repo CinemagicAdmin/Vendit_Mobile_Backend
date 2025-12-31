@@ -3,7 +3,7 @@ import {
   getUserGrowth,
   getProductPerformance,
   getMachineUtilization,
-  getOrderStatusBreakdown,
+  getOrderStatusBreakdown
 } from './admin-analytics.repository.js';
 
 export const getAnalyticsSalesTrends = async (period: string = '30d') => {

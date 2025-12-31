@@ -21,10 +21,10 @@ export const generateDashboardPDF = (data: DashboardData, res: Response) => {
   // Header
   pdf.addHeader(
     'Admin Dashboard Summary',
-    `Generated on ${new Date().toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
+    `Generated on ${new Date().toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
     })}`
   );
 
@@ -34,19 +34,19 @@ export const generateDashboardPDF = (data: DashboardData, res: Response) => {
   pdf.addKeyValue('Total Orders', data.totalOrders.toLocaleString());
   pdf.addKeyValue('Total Users', data.totalUsers.toLocaleString());
   pdf.addKeyValue('Active Machines', data.activeMachines.toLocaleString());
-  
+
   doc.moveDown(1);
 
   // Recent Orders Section
   if (data.recentOrders && data.recentOrders.length > 0) {
     pdf.addSection('Recent Orders');
-    
+
     const headers = ['Order ID', 'Date', 'Amount', 'Status'];
-    const rows = data.recentOrders.map(order => [
+    const rows = data.recentOrders.map((order) => [
       order.id,
       new Date(order.date).toLocaleDateString(),
       `$${order.amount.toFixed(2)}`,
-      order.status,
+      order.status
     ]);
 
     pdf.addTable(headers, rows);

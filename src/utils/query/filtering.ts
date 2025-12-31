@@ -5,13 +5,9 @@
 /**
  * Apply search filter across multiple fields
  */
-export const applySearch = (
-  query: any,
-  search: string | undefined,
-  fields: string[]
-): any => {
+export const applySearch = (query: any, search: string | undefined, fields: string[]): any => {
   if (!search) return query;
-  const searchPattern = fields.map(field => `${field}.ilike.%${search}%`).join(',');
+  const searchPattern = fields.map((field) => `${field}.ilike.%${search}%`).join(',');
   return query.or(searchPattern);
 };
 

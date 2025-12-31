@@ -12,7 +12,12 @@ const config = getConfig();
 /**
  * Generate JWT token for admin
  */
-const generateAdminToken = (adminId: string, email: string, name: string | null, role: string = 'admin'): string => {
+const generateAdminToken = (
+  adminId: string,
+  email: string,
+  name: string | null,
+  role: string = 'admin'
+): string => {
   return jwt.sign({ id: adminId, adminId, email, name, role }, config.jwtAccessSecret, {
     expiresIn: config.accessTokenTtl || '15m'
   });
@@ -22,9 +27,13 @@ const generateAdminToken = (adminId: string, email: string, name: string | null,
  * Generate refresh token
  */
 const generateRefreshToken = (adminId: string): string => {
-  return jwt.sign({ id: adminId, adminId, type: 'refresh' }, config.jwtRefreshSecret || config.jwtAccessSecret, {
-    expiresIn: '30d'
-  });
+  return jwt.sign(
+    { id: adminId, adminId, type: 'refresh' },
+    config.jwtRefreshSecret || config.jwtAccessSecret,
+    {
+      expiresIn: '30d'
+    }
+  );
 };
 
 /**
@@ -46,7 +55,12 @@ export const loginApi = async (req: Request, res: Response) => {
     }
 
     const admin = await authenticateAdmin(email, password);
-    const accessToken = generateAdminToken(admin.id, admin.email, admin.name, admin.role || 'admin');
+    const accessToken = generateAdminToken(
+      admin.id,
+      admin.email,
+      admin.name,
+      admin.role || 'admin'
+    );
     const refreshToken = generateRefreshToken(admin.id);
     const csrfToken = generateCsrfToken();
 
@@ -87,7 +101,7 @@ export const loginApi = async (req: Request, res: Response) => {
 
     // Web: Set httpOnly cookies
     const isProduction = config.nodeEnv === 'production';
-    
+
     res.cookie('access_token', accessToken, {
       httpOnly: true,
       secure: isProduction,
@@ -167,23 +181,23 @@ export const getMeApi = async (req: Request, res: Response) => {
 export const logoutApi = async (req: Request, res: Response) => {
   const admin = (req as any).admin;
   const refreshToken = req.cookies?.refresh_token;
-  
+
   if (admin?.adminId || admin?.id) {
     const adminId = admin.adminId || admin.id;
     await audit.adminLogout(adminId, req);
-    
+
     // Revoke all sessions for this user
     if (refreshToken) {
       const { revokeSession } = await import('../../libs/session.js');
       await revokeSession(adminId, refreshToken);
     }
   }
-  
+
   // Clear all auth cookies
   res.clearCookie('access_token');
   res.clearCookie('refresh_token');
   res.clearCookie('csrf_token');
-  
+
   return res.json(apiSuccess(null, 'Logout successful'));
 };
 

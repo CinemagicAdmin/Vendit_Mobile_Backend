@@ -9,7 +9,7 @@ import { getConfig } from '../config/env.js';
  * Extract correlation ID from request
  */
 const getCorrelationId = (req: Request): string | undefined => {
-  return (req as any).correlationId || req.headers['x-correlation-id'] as string | undefined;
+  return (req as any).correlationId || (req.headers['x-correlation-id'] as string | undefined);
 };
 
 /**

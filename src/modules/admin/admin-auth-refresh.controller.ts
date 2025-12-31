@@ -3,7 +3,12 @@ import type { Request, Response } from 'express';
 import { getConfig } from '../../config/env.js';
 import { apiSuccess, errorResponse } from '../../utils/response.js';
 import { logger } from '../../config/logger.js';
-import { getSession, revokeSession, setSession, revokeAllUserSessions } from '../../libs/session.js';
+import {
+  getSession,
+  revokeSession,
+  setSession,
+  revokeAllUserSessions
+} from '../../libs/session.js';
 import { AuthenticationError, ErrorCode } from '../../utils/errors.js';
 
 const config = getConfig();
@@ -17,12 +22,15 @@ interface RefreshTokenPayload {
 /**
  * Generate new access token
  */
-const generateAccessToken = (adminId: string, email: string, name: string | null, role: string = 'admin'): string => {
-  return jwt.sign(
-    { id: adminId, adminId, email, name, role },
-    config.jwtAccessSecret,
-    { expiresIn: config.accessTokenTtl || '15m' }
-  );
+const generateAccessToken = (
+  adminId: string,
+  email: string,
+  name: string | null,
+  role: string = 'admin'
+): string => {
+  return jwt.sign({ id: adminId, adminId, email, name, role }, config.jwtAccessSecret, {
+    expiresIn: config.accessTokenTtl || '15m'
+  });
 };
 
 /**
@@ -166,12 +174,14 @@ export const refreshTokenApi = async (req: Request, res: Response) => {
       res.clearCookie('access_token');
       res.clearCookie('refresh_token');
       res.clearCookie('csrf_token');
-      
+
       return res.status(error.statusCode).json(error.toJSON());
     }
 
     logger.error({ error, correlationId }, 'Token refresh failed');
     const statusCode = error.statusCode || 500;
-    return res.status(statusCode).json(errorResponse(statusCode, error.message || 'Token refresh failed'));
+    return res
+      .status(statusCode)
+      .json(errorResponse(statusCode, error.message || 'Token refresh failed'));
   }
 };

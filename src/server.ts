@@ -50,10 +50,10 @@ try {
   const config = getConfig();
   server = createServer(app);
   registerMachineSyncJob();
-  
+
   server.listen(config.port, config.host, async () => {
     logger.info(`API listening on http://${config.host}:${config.port}`);
-    
+
     // Initialize cache warming after server starts
     await initializeCacheWarming();
   });

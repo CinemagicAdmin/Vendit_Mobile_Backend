@@ -7,7 +7,7 @@ import { CacheWarming } from './cache.js';
  */
 export const initializeCacheWarming = async (): Promise<void> => {
   logger.info('Starting cache warming...');
-  
+
   const startTime = Date.now();
   const results: { [key: string]: boolean } = {};
 

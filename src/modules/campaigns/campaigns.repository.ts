@@ -23,10 +23,7 @@ export const listCampaigns = async (options = { limit: 10, activeOnly: true }) =
   // Filter active campaigns by default
   if (options.activeOnly) {
     const now = new Date().toISOString();
-    query = query
-      .eq('is_active', true)
-      .lte('start_date', now)
-      .gte('end_date', now);
+    query = query.eq('is_active', true).lte('start_date', now).gte('end_date', now);
   }
 
   query = query.order('start_date', { ascending: false });

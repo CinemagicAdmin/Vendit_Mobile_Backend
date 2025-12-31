@@ -62,15 +62,17 @@ export const setUserStatus = async (userId: string, status: number) => {
 export const getUserProfile = async (userId: string) => {
   const { data, error } = await supabase
     .from('users')
-    .select(`
+    .select(
+      `
       id, first_name, last_name, email, phone_number, user_profile,
       country, dob, is_otp_verify, status, created_at,
       wallet:wallet(balance),
       loyalty:user_loyalty_points(points_balance)
-    `)
+    `
+    )
     .eq('id', userId)
     .maybeSingle();
-  
+
   if (error) throw error;
   return data;
 };
@@ -81,13 +83,15 @@ export const getUserProfile = async (userId: string) => {
 export const getUserPayments = async (userId: string) => {
   const { data, error } = await supabase
     .from('payments')
-    .select(`
+    .select(
+      `
       id, charge_id, amount, created_at, transaction_id,
       machine:machine_u_id(machine_tag, location_address)
-    `)
+    `
+    )
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
-  
+
   if (error) throw error;
   return data ?? [];
 };

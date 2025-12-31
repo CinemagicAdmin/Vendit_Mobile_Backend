@@ -12,7 +12,7 @@ interface CacheOptions {
 
 /**
  * Cache TTL constants (in seconds)
- * 
+ *
  * TTL Strategy Documentation:
  * - SHORT (5min): Frequently changing data (cart items, availability)
  * - MEDIUM (30min): Semi-static data (product catalog, categories)
@@ -20,11 +20,11 @@ interface CacheOptions {
  * - DAY (24hr): Static content (terms, privacy policy)
  */
 export const CacheTTL = {
-  SHORT: 300,      // 5 minutes - cart, real-time data
-  MEDIUM: 1800,    // 30 minutes - products, categories
-  LONG: 3600,      // 1 hour - machines, campaigns
-  HOUR: 3600,      // 1 hour (alias)
-  DAY: 86400       // 24 hours - static content
+  SHORT: 300, // 5 minutes - cart, real-time data
+  MEDIUM: 1800, // 30 minutes - products, categories
+  LONG: 3600, // 1 hour - machines, campaigns
+  HOUR: 3600, // 1 hour (alias)
+  DAY: 86400 // 24 hours - static content
 };
 
 /**
@@ -40,44 +40,45 @@ export const CacheKeys = {
     cards: (userId: string) => `user:${userId}:cards`,
     all: (userId: string) => `user:${userId}:*`
   },
-  
-  // Product-related keys  
+
+  // Product-related keys
   products: {
     byMachine: (machineId: string) => `products:machine:${machineId}`,
-    byCategory: (machineId: string, categoryId: string) => `products:machine:${machineId}:category:${categoryId}`,
+    byCategory: (machineId: string, categoryId: string) =>
+      `products:machine:${machineId}:category:${categoryId}`,
     detail: (productId: string) => `product:${productId}:detail`,
     inventory: (productId: string) => `product:${productId}:inventory`,
     all: (machineId: string) => `products:machine:${machineId}:*`
   },
-  
+
   // Machine-related keys
   machines: {
     detail: (machineId: string) => `machine:${machineId}:detail`,
-    nearby: (lat: number, lng: number, radius: number) => 
+    nearby: (lat: number, lng: number, radius: number) =>
       `machines:nearby:${lat.toFixed(4)}:${lng.toFixed(4)}:${radius}`,
     status: (machineId: string) => `machine:${machineId}:status`,
     all: () => 'machines:*'
   },
-  
+
   // Category keys
   categories: {
     byMachine: (machineId: string) => `categories:machine:${machineId}`,
     all: () => 'categories:*'
   },
-  
+
   // Campaign keys
   campaigns: {
     active: () => 'campaigns:active',
     detail: (campaignId: string) => `campaign:${campaignId}:detail`,
     all: () => 'campaigns:*'
   },
-  
+
   // Cart keys
   cart: {
     items: (userId: string) => `cart:${userId}:items`,
     all: (userId: string) => `cart:${userId}:*`
   },
-  
+
   // Admin keys
   admin: {
     stats: () => 'admin:stats',
@@ -147,19 +148,22 @@ export const cacheDel = async (key: string, options?: CacheOptions): Promise<boo
 
 /**
  * Delete multiple keys matching a pattern (supports wildcards)
- * 
+ *
  * Usage:
  * - invalidatePattern('user:123:*') - invalidate all user 123 data
  * - invalidatePattern('products:*') - invalidate all products
  * - invalidatePattern(CacheKeys.user.all('123')) - type-safe invalidation
  */
-export const invalidatePattern = async (pattern: string, options?: CacheOptions): Promise<number> => {
+export const invalidatePattern = async (
+  pattern: string,
+  options?: CacheOptions
+): Promise<number> => {
   try {
     const prefix = options?.prefix || DEFAULT_PREFIX;
     const fullPattern = `${prefix}:${pattern}`;
-    
+
     logger.info({ pattern: fullPattern }, 'Invalidating cache by pattern');
-    
+
     // Check if redis client has keys method (real Redis)
     if (typeof (redis as any).keys === 'function') {
       const keys = await (redis as any).keys(fullPattern);
@@ -169,7 +173,7 @@ export const invalidatePattern = async (pattern: string, options?: CacheOptions)
         return keys.length;
       }
     }
-    
+
     return 0;
   } catch (error) {
     logger.warn({ error, pattern }, 'Cache pattern invalidation failed');
@@ -189,7 +193,7 @@ export const cacheWrap = async <T = any>(
   options?: CacheOptions
 ): Promise<T> => {
   const keyPrefix = key.split(':')[0]; // Extract key prefix for metrics
-  
+
   // Try to get from cache first
   const cached = await cacheGet<T>(key, options);
   if (cached !== null) {
@@ -197,10 +201,10 @@ export const cacheWrap = async <T = any>(
     cacheHits.inc({ key_prefix: keyPrefix });
     return cached;
   }
-  
+
   logger.debug({ key }, 'Cache miss');
   cacheMisses.inc({ key_prefix: keyPrefix });
-  
+
   // Execute the function
   const result = await fn();
   // Store in cache
@@ -317,7 +321,7 @@ export const getCacheStats = async () => {
       const info = await (redis as any).info('stats');
       const lines = info.split('\r\n');
       const stats: Record<string, string> = {};
-      
+
       lines.forEach((line: string) => {
         if (line && !line.startsWith('#')) {
           const [key, value] = line.split(':');
@@ -339,7 +343,7 @@ export const getCacheStats = async () => {
     // Get Prometheus metrics for cache
     const cacheHitsTotal = await cacheHits.get();
     const cacheMissesTotal = await cacheMisses.get();
-    
+
     const hits = cacheHitsTotal.values.reduce((sum, v) => sum + v.value, 0);
     const misses = cacheMissesTotal.values.reduce((sum, v) => sum + v.value, 0);
     const total = hits + misses;
@@ -357,7 +361,9 @@ export const getCacheStats = async () => {
       by_key_prefix: cacheHitsTotal.values.map((v) => ({
         key_prefix: v.labels.key_prefix,
         hits: v.value,
-        misses: cacheMissesTotal.values.find(m => m.labels.key_prefix === v.labels.key_prefix)?.value || 0
+        misses:
+          cacheMissesTotal.values.find((m) => m.labels.key_prefix === v.labels.key_prefix)?.value ||
+          0
       }))
     };
   } catch (error) {

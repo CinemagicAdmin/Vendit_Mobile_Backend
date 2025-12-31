@@ -14,7 +14,8 @@ export const exportSalesApi = async (req: Request, res: Response): Promise<void>
     // Build query for sales data
     let query = supabase
       .from('payments')
-      .select(`
+      .select(
+        `
         id,
         order_reference,
         created_at,
@@ -42,10 +43,11 @@ export const exportSalesApi = async (req: Request, res: Response): Promise<void>
             brand_name
           )
         )
-      `)
-      .eq('status', status || 'CAPTURED')  // Default to successful orders
+      `
+      )
+      .eq('status', status || 'CAPTURED') // Default to successful orders
       .order('created_at', { ascending: false })
-      .limit(1000);  // Reasonable limit for PDF
+      .limit(1000); // Reasonable limit for PDF
 
     // Apply date filters
     if (startDate) {
@@ -85,7 +87,11 @@ export const exportSalesApi = async (req: Request, res: Response): Promise<void>
     }));
 
     // Generate PDF
-    generateSalesExportPDF(salesData, { startDate: startDate as string, endDate: endDate as string }, res);
+    generateSalesExportPDF(
+      salesData,
+      { startDate: startDate as string, endDate: endDate as string },
+      res
+    );
   } catch (error: any) {
     const statusCode = error.statusCode || 500;
     res

@@ -252,7 +252,7 @@ export const dispatchDispenseCommand = async (machineId: string, slotNumber: str
   }
 
   const payload = JSON.stringify({ type: 'dispense', machineId, slotNumber });
-  
+
   logger.info(
     { socketUrl: dispenseSocketUrl, machineId, slotNumber },
     'Dispatching dispense command'
@@ -277,7 +277,7 @@ export const dispatchDispenseCommand = async (machineId: string, slotNumber: str
       settled = true;
       clearTimeout(connectionTimeoutId);
       clearTimeout(sendTimeoutId);
-      
+
       try {
         if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
           socket.close();
@@ -285,7 +285,7 @@ export const dispatchDispenseCommand = async (machineId: string, slotNumber: str
       } catch (closeError) {
         logger.warn({ closeError }, 'Failed to close dispense socket cleanly');
       }
-      
+
       if (error) {
         reject(error);
       } else {
@@ -310,13 +310,12 @@ export const dispatchDispenseCommand = async (machineId: string, slotNumber: str
         socket.send(payload);
         commandSent = true;
         logger.info({ machineId, slotNumber }, 'Dispense command sent successfully');
-        
+
         // Return success after short delay (fire-and-forget)
         sendTimeoutId = setTimeout(() => {
           logger.info({ machineId, slotNumber }, 'Dispense command completed (fire-and-forget)');
           cleanup(null, true);
         }, SEND_TIMEOUT_MS);
-        
       } catch (error) {
         logger.error({ error, machineId, slotNumber }, 'Failed to send dispense payload');
         cleanup(new apiError(502, 'Failed to send dispense payload'));

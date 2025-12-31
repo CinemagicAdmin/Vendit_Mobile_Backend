@@ -16,10 +16,13 @@ export interface ListFeedbackParams extends PaginationParams {
 export const listFeedback = async (params?: ListFeedbackParams) => {
   const { page, limit, offset } = getPaginationParams(params);
 
-  let query = supabase.from('contact_us').select(`
+  let query = supabase.from('contact_us').select(
+    `
     id, subject, message, created_at,
     user:users!contact_us_user_id_fkey(phone_number, email)
-  `, { count: 'exact' });
+  `,
+    { count: 'exact' }
+  );
 
   // Apply search
   query = applySearch(query, params?.search, ['message', 'subject']);

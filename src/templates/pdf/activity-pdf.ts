@@ -25,14 +25,12 @@ export const generateActivityPDF = (
   const doc = pdf.pipe(res, `activity-logs-${new Date().toISOString().split('T')[0]}.pdf`);
 
   // Header
-  const dateRange = filters.startDate && filters.endDate
-    ? `${new Date(filters.startDate).toLocaleDateString()} - ${new Date(filters.endDate).toLocaleDateString()}`
-    : 'All Time';
+  const dateRange =
+    filters.startDate && filters.endDate
+      ? `${new Date(filters.startDate).toLocaleDateString()} - ${new Date(filters.endDate).toLocaleDateString()}`
+      : 'All Time';
 
-  pdf.addHeader(
-    'Activity Logs Report',
-    `Period: ${dateRange}`
-  );
+  pdf.addHeader('Activity Logs Report', `Period: ${dateRange}`);
 
   // Filters Applied
   pdf.addSection('Filters Applied');
@@ -42,13 +40,14 @@ export const generateActivityPDF = (
 
   // Activity Logs Table
   pdf.addSection(`Activity Log (${logs.length} entries)`);
-  
+
   const headers = ['Date', 'Admin', 'Action', 'Entity'];
-  const rows = logs.slice(0, 50).map(log => [ // Limit to 50 for PDF
+  const rows = logs.slice(0, 50).map((log) => [
+    // Limit to 50 for PDF
     new Date(log.created_at).toLocaleDateString(),
     log.admin_name,
     log.action.toUpperCase(),
-    log.entity + (log.entity_id ? ` #${log.entity_id}` : ''),
+    log.entity + (log.entity_id ? ` #${log.entity_id}` : '')
   ]);
 
   pdf.addTable(headers, rows);

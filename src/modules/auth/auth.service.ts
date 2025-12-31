@@ -17,17 +17,18 @@ const otpCacheKey = (phone) => `otp:${phone}`;
 const sendOtp = async (phone, otp) => {
   const config = getConfig();
   const shouldMock =
-    config.smsDriver === 'log' || (config.nodeEnv !== 'production' && config.smsDriver !== 'remote');
-  
+    config.smsDriver === 'log' ||
+    (config.nodeEnv !== 'production' && config.smsDriver !== 'remote');
+
   if (shouldMock) {
     logger.info({ phone, otp }, 'Mock OTP dispatched (SMS_DRIVER=log or dev mode)');
     return true;
   }
-  
+
   try {
     // SMSBox API integration
     logger.info({ phone, driver: config.smsDriver }, 'Sending OTP via SMS provider');
-    
+
     const params = new URLSearchParams({
       username: config.smsUsername,
       password: config.smsPassword,
@@ -49,7 +50,7 @@ const sendOtp = async (phone, otp) => {
     if (status !== 200) {
       throw new apiError(502, 'OTP provider failure');
     }
-    
+
     logger.info({ phone }, 'SMS sent successfully');
     return false;
   } catch (error) {

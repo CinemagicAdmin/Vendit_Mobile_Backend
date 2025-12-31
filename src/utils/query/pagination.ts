@@ -36,7 +36,7 @@ export const buildPaginationMeta = (
   page: number,
   limit: number,
   total: number
-): PaginationMeta =>  ({
+): PaginationMeta => ({
   page,
   limit,
   total,

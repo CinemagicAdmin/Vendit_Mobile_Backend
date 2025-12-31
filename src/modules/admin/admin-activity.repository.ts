@@ -73,7 +73,8 @@ export const listActivityLogs = async (params?: {
       const detailParts = [];
       if (parsedDetails.action) detailParts.push(parsedDetails.action);
       if (parsedDetails.message) detailParts.push(parsedDetails.message);
-      formattedDetails = detailParts.length > 0 ? detailParts.join(' - ') : JSON.stringify(parsedDetails);
+      formattedDetails =
+        detailParts.length > 0 ? detailParts.join(' - ') : JSON.stringify(parsedDetails);
     }
 
     return {

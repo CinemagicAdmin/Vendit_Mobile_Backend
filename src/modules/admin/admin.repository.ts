@@ -1,6 +1,6 @@
 /**
  * Admin Repository
- * 
+ *
  * This file re-exports all domain-specific repositories for backward compatibility.
  * The original 390-line file has been split into focused, maintainable modules.
  */

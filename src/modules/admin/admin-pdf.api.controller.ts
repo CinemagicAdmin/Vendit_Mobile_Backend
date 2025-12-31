@@ -18,10 +18,7 @@ export const exportDashboardPdfApi = async (req: Request, res: Response): Promis
       .order('created_at', { ascending: false })
       .limit(10000); // Limit to last 10k payments for performance
 
-    const { data: users } = await supabase
-      .from('users')
-      .select('id')
-      .limit(50000); // Reasonable limit for user count
+    const { data: users } = await supabase.from('users').select('id').limit(50000); // Reasonable limit for user count
 
     const { data: machines } = await supabase
       .from('machines')
@@ -32,7 +29,7 @@ export const exportDashboardPdfApi = async (req: Request, res: Response): Promis
     const totalOrders = (payments || []).length;
     const totalUsers = (users || []).length;
     const activeMachines = (machines || []).filter(
-      m => m.machine_operation_state?.toLowerCase() === 'active'
+      (m) => m.machine_operation_state?.toLowerCase() === 'active'
     ).length;
 
     // Get recent orders
@@ -47,17 +44,19 @@ export const exportDashboardPdfApi = async (req: Request, res: Response): Promis
       totalOrders,
       totalUsers,
       activeMachines,
-      recentOrders: (recentOrders || []).map(order => ({
+      recentOrders: (recentOrders || []).map((order) => ({
         id: String(order.id),
         date: order.created_at,
         amount: Number(order.amount || 0),
-        status: order.status || 'unknown',
-      })),
+        status: order.status || 'unknown'
+      }))
     };
 
     // Validate data before generating PDF
-    if (typeof dashboardData.totalRevenue !== 'number' || 
-        typeof dashboardData.totalOrders !== 'number') {
+    if (
+      typeof dashboardData.totalRevenue !== 'number' ||
+      typeof dashboardData.totalOrders !== 'number'
+    ) {
       res.status(400).json(errorResponse(400, 'Invalid dashboard data'));
       return;
     }
@@ -81,7 +80,8 @@ export const exportOrderPdfApi = async (req: Request, res: Response): Promise<vo
     // Fetch order with ALL details
     const { data: order, error } = await supabase
       .from('payments')
-      .select(`
+      .select(
+        `
         id,
         order_reference,
         created_at,
@@ -104,7 +104,8 @@ export const exportOrderPdfApi = async (req: Request, res: Response): Promise<vo
             brand_name
           )
         )
-      `)
+      `
+      )
       .eq('id', orderId)
       .single();
 
@@ -121,7 +122,7 @@ export const exportOrderPdfApi = async (req: Request, res: Response): Promise<vo
         .select('first_name, last_name, email, phone_number')
         .eq('id', order.user_id)
         .single();
-      
+
       if (user) {
         customerName = `${user.first_name || ''} ${user.last_name || ''}`.trim();
         customerEmail = user.email;
@@ -136,17 +137,19 @@ export const exportOrderPdfApi = async (req: Request, res: Response): Promise<vo
       customerName,
       customerEmail,
       customerPhone,
-      machine: (order.machine as any)?.[0] ? {
-        name: (order.machine as any)[0].machine_tag,
-        location: (order.machine as any)[0].location_address
-      } : undefined,
+      machine: (order.machine as any)?.[0]
+        ? {
+            name: (order.machine as any)[0].machine_tag,
+            location: (order.machine as any)[0].location_address
+          }
+        : undefined,
       items: ((order.payment_products as any) || []).map((pp: any) => ({
         name: pp.product?.description || pp.product?.brand_name || 'Unknown Product',
         quantity: pp.quantity || 1,
-        price: Number(pp.unit_price || 0),
+        price: Number(pp.unit_price || 0)
       })),
       subtotal: Number(order.amount || 0),
-      tax: 0,  // Add tax calculation if needed
+      tax: 0, // Add tax calculation if needed
       total: Number(order.amount || 0),
       currency: order.currency || 'KWD',
       status: order.status || 'unknown',

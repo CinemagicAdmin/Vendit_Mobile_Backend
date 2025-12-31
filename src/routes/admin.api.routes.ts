@@ -168,7 +168,7 @@ router.get('/analytics/sales-trends', getSalesTrendsApi);
 // PDF Exports
 router.get('/export/dashboard/pdf', exportDashboardPdfApi);
 router.get('/export/order/:orderId/pdf', exportOrderPdfApi);
-router.get('/export/sales/pdf', exportSalesApi);  // NEW: Sales export
+router.get('/export/sales/pdf', exportSalesApi); // NEW: Sales export
 router.post('/export/activity/pdf', exportActivityPdfApi);
 
 // Legacy Tools

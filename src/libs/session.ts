@@ -76,10 +76,7 @@ export const setSession = async (
 /**
  * Get session from Redis
  */
-export const getSession = async (
-  userId: string,
-  refreshToken: string
-): Promise<Session | null> => {
+export const getSession = async (userId: string, refreshToken: string): Promise<Session | null> => {
   try {
     const tokenHash = hashToken(refreshToken);
     const sessionKey = getSessionKey(userId, tokenHash);
@@ -91,7 +88,7 @@ export const getSession = async (
     }
 
     const session = JSON.parse(data) as Session;
-    
+
     // Check if session is expired
     if (Date.now() > session.expiresAt) {
       logger.debug({ userId }, 'Session expired');
@@ -109,10 +106,7 @@ export const getSession = async (
 /**
  * Revoke a specific session
  */
-export const revokeSession = async (
-  userId: string,
-  refreshToken: string
-): Promise<boolean> => {
+export const revokeSession = async (userId: string, refreshToken: string): Promise<boolean> => {
   try {
     const tokenHash = hashToken(refreshToken);
     const sessionKey = getSessionKey(userId, tokenHash);
@@ -204,13 +198,13 @@ export const getUserSessions = async (userId: string): Promise<Session[]> => {
 export const cleanupExpiredSessions = async (): Promise<number> => {
   try {
     logger.info('Starting session cleanup');
-    
+
     // Redis automatically expires keys with TTL
     // This function is mainly for logging/monitoring
-    
+
     // In a real implementation, you might scan for session keys
     // and manually cleanup, but Redis TTL handles this automatically
-    
+
     logger.info('Session cleanup completed (handled by Redis TTL)');
     return 0;
   } catch (error) {

@@ -15,15 +15,17 @@ export interface ListProductsParams extends PaginationParams {
 export const getProduct = async (productUId: string) => {
   const { data, error } = await supabase
     .from('products')
-    .select(`
+    .select(
+      `
       product_u_id, brand_name, description,
       product_image_url, product_detail_image_url,
       unit_price, cost_price, metadata,
       category:category_id(category_name)
-    `)
+    `
+    )
     .eq('product_u_id', productUId)
     .maybeSingle();
-  
+
   if (error) throw error;
   return data;
 };
@@ -34,13 +36,16 @@ export const getProduct = async (productUId: string) => {
 export const listProducts = async (params?: ListProductsParams) => {
   const { page, limit, offset } = getPaginationParams(params);
 
-  let query = supabase.from('machine_slots').select(`
+  let query = supabase.from('machine_slots').select(
+    `
     product:product_u_id(
       product_u_id, description, product_image_url, brand_name,
       category:category_id(category_name)
     ),
     quantity, machine_u_id
-  `, { count: 'exact' });
+  `,
+    { count: 'exact' }
+  );
 
   // Apply search
   if (params?.search) {

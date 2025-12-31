@@ -14,7 +14,7 @@ export const getSalesTrends = async (period: string = '30d') => {
     .select('created_at, amount, status')
     .gte('created_at', startDate.toISOString())
     .eq('status', 'CAPTURED')
-    .order('created_at', { ascending: true})
+    .order('created_at', { ascending: true })
     .limit(5000); // Prevent excessive data transfer
 
   if (error) throw error;
@@ -31,8 +31,8 @@ export const getSalesTrends = async (period: string = '30d') => {
   }, {});
 
   const dates = Object.keys(grouped).sort();
-  const revenue = dates.map(date => grouped[date].revenue);
-  const orders = dates.map(date => grouped[date].orders);
+  const revenue = dates.map((date) => grouped[date].revenue);
+  const orders = dates.map((date) => grouped[date].orders);
 
   return { dates, revenue, orders };
 };
@@ -63,11 +63,11 @@ export const getUserGrowth = async (period: string = '30d') => {
   }, {});
 
   const dates = Object.keys(grouped).sort();
-  const newUsers = dates.map(date => grouped[date]);
-  
+  const newUsers = dates.map((date) => grouped[date]);
+
   // Calculate cumulative total
   let total = 0;
-  const totalUsers = newUsers.map(count => {
+  const totalUsers = newUsers.map((count) => {
     total += count;
     return total;
   });
@@ -84,7 +84,8 @@ export const getProductPerformance = async (limit: number = 10) => {
   // Fetching last 50k records should cover most use cases
   const { data, error } = await supabase
     .from('payment_products')
-    .select(`
+    .select(
+      `
       product_u_id,
       quantity,
       product:product_u_id (
@@ -92,7 +93,8 @@ export const getProductPerformance = async (limit: number = 10) => {
         brand_name,
         unit_price
       )
-    `)
+    `
+    )
     .order('created_at', { ascending: false })
     .limit(50000); // Limit to recent 50k payment products
 
@@ -106,7 +108,7 @@ export const getProductPerformance = async (limit: number = 10) => {
         id: productId,
         name: item.product?.description || item.product?.brand_name || 'Unknown',
         sales: 0,
-        revenue: 0,
+        revenue: 0
       };
     }
     acc[productId].sales += item.quantity || 0;
@@ -126,9 +128,7 @@ export const getProductPerformance = async (limit: number = 10) => {
  * Get machine utilization stats
  */
 export const getMachineUtilization = async () => {
-  const { data, error } = await supabase
-    .from('machines')
-    .select('machine_operation_state');
+  const { data, error } = await supabase.from('machines').select('machine_operation_state');
 
   if (error) throw error;
 
@@ -156,20 +156,15 @@ export const getMachineUtilization = async () => {
  * Get order status breakdown
  */
 export const getOrderStatusBreakdown = async () => {
-  const { data, error } = await supabase
-    .from('payments')
-    .select('status');
+  const { data, error } = await supabase.from('payments').select('status');
 
   if (error) throw error;
 
-  const breakdown = (data || []).reduce(
-    (acc: any, payment: any) => {
-      const status = payment.status?.toLowerCase() || 'unknown';
-      acc[status] = (acc[status] || 0) + 1;
-      return acc;
-    },
-    {}
-  );
+  const breakdown = (data || []).reduce((acc: any, payment: any) => {
+    const status = payment.status?.toLowerCase() || 'unknown';
+    acc[status] = (acc[status] || 0) + 1;
+    return acc;
+  }, {});
 
   return breakdown;
 };

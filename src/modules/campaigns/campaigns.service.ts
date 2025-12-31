@@ -77,10 +77,10 @@ export const createCampaignWithMedia = async (payload) => {
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   });
-  
+
   // Invalidate cache
   await cacheDel(CacheKeys.campaigns.active());
-  
+
   return ok(
     { ...campaign, image_url: buildImageUrl(campaign?.image_path ?? null) },
     'Campaign created'
@@ -101,10 +101,10 @@ export const updateCampaignWithMedia = async (id, payload) => {
     image_path: imagePath ?? existing.image_path,
     updated_at: new Date().toISOString()
   });
-  
+
   // Invalidate cache
   await cacheDel(CacheKeys.campaigns.active());
-  
+
   return ok(
     { ...updated, image_url: buildImageUrl(updated?.image_path ?? null) },
     'Campaign updated'
@@ -112,9 +112,9 @@ export const updateCampaignWithMedia = async (id, payload) => {
 };
 export const removeCampaign = async (id) => {
   await deleteCampaign(id);
-  
+
   // Invalidate cache
   await cacheDel(CacheKeys.campaigns.active());
-  
+
   return ok(null, 'Campaign deleted');
 };

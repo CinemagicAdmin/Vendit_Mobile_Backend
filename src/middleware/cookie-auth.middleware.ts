@@ -89,7 +89,7 @@ export const cookieAuth = async (req: Request, res: Response, next: NextFunction
       if (timeToExpiry < 300 && timeToExpiry > 0) {
         // Token expires in less than 5 minutes, refresh it
         logger.info({ userId: decoded.id, timeToExpiry }, 'Token close to expiry, refreshing');
-        
+
         // Generate new access token
         const newToken = jwt.sign(
           {

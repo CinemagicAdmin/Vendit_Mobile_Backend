@@ -170,10 +170,10 @@ export const getAdminOrder = async (orderId) => {
   const order = await getOrder(orderId);
   if (!order) throw new apiError(404, 'Order not found');
   const items = await listOrderProducts(orderId);
-  
+
   const user = unwrapSingle(order.user);
   const machine = unwrapSingle(order.machine);
-  
+
   return {
     order_id: order.id,
     order_reference: order.order_reference || `ORD-${order.id.slice(0, 8).toUpperCase()}`,

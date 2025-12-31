@@ -54,7 +54,7 @@ export const getCategoryById = async (id) => {
   return data;
 };
 export const updateCategory = async (id, payload) => {
-  const { data, error} = await supabase
+  const { data, error } = await supabase
     .from('categories')
     .update({
       category_name: payload.name,

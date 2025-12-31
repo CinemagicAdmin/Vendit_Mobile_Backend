@@ -33,9 +33,9 @@ export const generateOrderPDF = (order: OrderData, res: Response) => {
   // Header with order reference
   pdf.addHeader(
     `Order ${order.orderReference}`,
-    `Date: ${new Date(order.date).toLocaleString('en-US', { 
-      year: 'numeric', 
-      month: 'long', 
+    `Date: ${new Date(order.date).toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'long',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
@@ -67,13 +67,13 @@ export const generateOrderPDF = (order: OrderData, res: Response) => {
 
   // Order Items
   pdf.addSection('Order Items');
-  
+
   const headers = ['Item', 'Quantity', 'Price', 'Subtotal'];
-  const rows = order.items.map(item => [
+  const rows = order.items.map((item) => [
     item.name,
     item.quantity.toString(),
     `${order.currency} ${item.price.toFixed(3)}`,
-    `${order.currency} ${(item.quantity * item.price).toFixed(3)}`,
+    `${order.currency} ${(item.quantity * item.price).toFixed(3)}`
   ]);
 
   pdf.addTable(headers, rows);
@@ -87,7 +87,7 @@ export const generateOrderPDF = (order: OrderData, res: Response) => {
   }
   pdf.addKeyValue('Total Amount', `${order.currency} ${order.total.toFixed(3)}`);
   pdf.addKeyValue('Status', order.status.toUpperCase());
-  
+
   // Payment Information
   if (order.paymentMethod || order.transactionId) {
     doc.moveDown(0.5);

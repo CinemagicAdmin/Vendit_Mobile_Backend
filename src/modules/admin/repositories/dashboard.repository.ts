@@ -4,11 +4,8 @@ import { supabase } from '../../../libs/supabase.js';
  * Sum all captured payments for total revenue
  */
 const sumPayments = async (): Promise<number> => {
-  const { data, error } = await supabase
-    .from('payments')
-    .select('amount')
-    .eq('status', 'CAPTURED');
-  
+  const { data, error } = await supabase.from('payments').select('amount').eq('status', 'CAPTURED');
+
   if (error) throw error;
   return (data ?? []).reduce((sum, row) => sum + Number(row.amount ?? 0), 0);
 };
@@ -24,7 +21,7 @@ export const getDashboardMetrics = async () => {
     supabase.from('payments').select('id', { head: true, count: 'exact' }).eq('status', 'CAPTURED'),
     supabase.from('machines').select('u_id', { head: true, count: 'exact' })
   ]);
-  
+
   return {
     totalUsers: totalUsers.count ?? 0,
     activeUsers: activeUsers.count ?? 0,

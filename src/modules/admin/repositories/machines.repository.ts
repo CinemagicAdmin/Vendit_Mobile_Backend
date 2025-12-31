@@ -45,15 +45,17 @@ export const listMachines = async (params?: ListMachinesParams) => {
 export const listMachineProducts = async (machineUId: string) => {
   const { data, error } = await supabase
     .from('machine_slots')
-    .select(`
+    .select(
+      `
       slot_number, quantity, max_quantity,
       product:product_u_id(
         product_u_id, description, product_image_url,
         brand_name, category:category_id(category_name)
       )
-    `)
+    `
+    )
     .eq('machine_u_id', machineUId);
-  
+
   if (error) throw error;
   return data ?? [];
 };

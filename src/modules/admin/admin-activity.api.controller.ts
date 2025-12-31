@@ -5,7 +5,7 @@ import { getActivityLogs } from './admin-activity.service.js';
 export const getActivityLogsApi = async (req: Request, res: Response) => {
   try {
     const { page, limit, admin_id, startDate, endDate, action, entityType } = req.query;
-    
+
     const result = await getActivityLogs({
       page: page ? parseInt(page as string) : undefined,
       limit: limit ? parseInt(limit as string) : undefined,
@@ -15,7 +15,7 @@ export const getActivityLogsApi = async (req: Request, res: Response) => {
       action: action as string,
       entityType: entityType as string
     });
-    
+
     // Frontend expects: { data: { logs: [...], meta: {...} } }
     return res.json(apiSuccess({ logs: result.data, meta: result.meta }));
   } catch (error: any) {

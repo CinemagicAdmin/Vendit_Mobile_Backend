@@ -39,7 +39,7 @@ export const getAdminProfile = async (adminId) => {
 export const updateAdminProfile = async (adminId, payload) => {
   const admin = await getAdminById(adminId);
   if (!admin) throw new apiError(404, 'Admin not found');
-  
+
   let avatarPath = admin.avatar_path ?? null;
   if (payload.file) {
     avatarPath = await uploadFile({
@@ -48,7 +48,7 @@ export const updateAdminProfile = async (adminId, payload) => {
       prefix: adminId
     });
   }
-  
+
   const updated = await updateAdminProfileInDb(adminId, {
     name: payload.name,
     avatarPath
@@ -108,7 +108,7 @@ export const createAdminCategory = async (payload) => {
 export const updateAdminCategory = async (id, payload) => {
   const existing = await getCategoryById(id);
   if (!existing) throw new apiError(404, 'Category not found');
-  
+
   // Icon upload temporarily disabled - icon_path column doesn't exist
   const updated = await updateCategory(id, {
     name: payload.name,
