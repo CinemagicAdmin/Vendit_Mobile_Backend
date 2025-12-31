@@ -44,17 +44,11 @@ const getClientInfo = (req?: Request) => {
 export const auditLog = async (entry: AuditLogEntry, req?: Request): Promise<void> => {
   const { ipAddress, userAgent } = getClientInfo(req);
 
-  // Convert adminId to number for BIGINT column
-  let adminIdNum: number | null = null;
-  if (entry.adminId) {
-    const parsed = parseInt(entry.adminId, 10);
-    adminIdNum = isNaN(parsed) ? null : parsed;
-  }
-
+  // admin_id is now UUID, use directly without conversion
   const logEntry = {
     action: entry.action,
     user_id: entry.userId ?? null,
-    admin_id: adminIdNum,
+    admin_id: entry.adminId ?? null,  // UUID - no conversion needed
     resource_type: entry.resourceType,
     resource_id: entry.resourceId ?? null,
     details: entry.details ?? null,

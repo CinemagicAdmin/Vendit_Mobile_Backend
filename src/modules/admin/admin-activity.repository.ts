@@ -66,15 +66,44 @@ export const listActivityLogs = async (params?: {
     // Extract admin name from parsed details (handles both admin_name and adminName)
     const adminName = parsedDetails?.adminName || parsedDetails?.admin_name || 'System';
 
-    // Format details for display
+    // Format details for display - show all relevant information
     let formattedDetails = '';
     if (parsedDetails && Object.keys(parsedDetails).length > 0) {
-      // Create a readable summary from details
       const detailParts = [];
-      if (parsedDetails.action) detailParts.push(parsedDetails.action);
-      if (parsedDetails.message) detailParts.push(parsedDetails.message);
-      formattedDetails =
-        detailParts.length > 0 ? detailParts.join(' - ') : JSON.stringify(parsedDetails);
+      
+      // Add action if present (e.g., "suspended", "unsuspended")
+      if (parsedDetails.action) {
+        detailParts.push(`Action: ${parsedDetails.action}`);
+      }
+      
+      // Add message if present
+      if (parsedDetails.message) {
+        detailParts.push(`Message: ${parsedDetails.message}`);
+      }
+      
+      // Add deletedBy/updatedBy information
+      if (parsedDetails.deletedBy) {
+        detailParts.push(`Deleted by: ${parsedDetails.deletedBy}`);
+      }
+      if (parsedDetails.updatedBy) {
+        detailParts.push(`Updated by: ${parsedDetails.updatedBy}`);
+      }
+      
+      // Add any email if present
+      if (parsedDetails.email) {
+        detailParts.push(`Email: ${parsedDetails.email}`);
+      }
+      
+      // If we have formatted parts, use them; otherwise show full JSON for debugging
+      if (detailParts.length > 0) {
+        formattedDetails = detailParts.join(' | ');
+      } else {
+        // Show all other fields in a readable format
+        formattedDetails = Object.entries(parsedDetails)
+          .filter(([key]) => !['adminName', 'admin_name'].includes(key))
+          .map(([key, value]) => `${key}: ${value}`)
+          .join(' | ');
+      }
     }
 
     return {
