@@ -10,6 +10,7 @@ import { listMachines, getMachineById, getMachineSlots } from './machines.reposi
 import { dispenseCommandSchema } from './machines.validators.js';
 import { getPaymentById } from '../payments/payments.repository.js';
 import { getDispenseLogsByPayment } from './dispense-logs.repository.js';
+import { DISPENSABLE_PAYMENT_STATUSES } from '../../constants/payment-statuses.js';
 
 export const handleSyncMachines = async (_req, res) => {
   const response = await syncMachines();
@@ -67,11 +68,13 @@ export const handleTriggerDispense = async (req, res) => {
     });
   }
 
-  // 2. Verify payment is PAID/CAPTURED
-  if (payment.status !== 'PAID' && payment.status !== 'CAPTURED') {
+  // 2. Verify payment status allows dispensing (includes wallet payments)
+  if (!DISPENSABLE_PAYMENT_STATUSES.includes(payment.status)) {
     return res.status(400).json({
       success: false,
-      message: `Payment status is ${payment.status}. Cannot dispense until payment is completed.`
+      message: `Payment status is '${payment.status}'. Only completed payments (PAID, CAPTURED, or DEBIT) can be dispensed.`,
+      currentStatus: payment.status,
+      allowedStatuses: DISPENSABLE_PAYMENT_STATUSES
     });
   }
 
