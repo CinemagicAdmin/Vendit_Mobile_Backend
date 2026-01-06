@@ -102,11 +102,16 @@ export const getMachineById = async (id) => {
   
   if (dataByUid) return dataByUid;
   
-  // If not found by u_id, try by id (UUID)
-  const { data: dataById, error: idError } = await supabase.from('machines').select('*').eq('id', id).maybeSingle();
-  if (idError) throw idError;
+  // Only try by id (UUID) if the input looks like a UUID
+  // UUID format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (uuidRegex.test(id)) {
+    const { data: dataById, error: idError } = await supabase.from('machines').select('*').eq('id', id).maybeSingle();
+    if (idError) throw idError;
+    return dataById;
+  }
   
-  return dataById;
+  return null;
 };
 export const getMachineSlots = async (machineUId) => {
   const { data, error } = await supabase
