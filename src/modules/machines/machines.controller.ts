@@ -79,22 +79,35 @@ export const handleTriggerDispense = async (req, res) => {
   }
 
   // 3. Verify payment is for this machine
-  // Both payment and request can use either UUID or u_id format
-  // We fetch the machine to get both formats and check if they match
-  const requestedMachine = await getMachineById(payload.machineId);
-  if (!requestedMachine) {
-    return res.status(404).json({
-      success: false,
-      message: 'Machine not found'
-    });
-  }
-
-  // Check if payment's machine_u_id matches either the requested machine's u_id or UUID
+  // payment.machine_u_id could be stored as UUID or u_id string format
+  // payload.machineId could be either UUID or u_id string
+  // We need to match flexibly
   const paymentMachineId = payment.machine_u_id;
-  const machineMatches = 
-    paymentMachineId === requestedMachine.u_id ||  // Both using u_id
-    paymentMachineId === requestedMachine.id;       // Payment has UUID, request has u_id
   
+  let machineMatches = false;
+  
+  // Direct match (payment stored same format as request)
+  if (paymentMachineId === payload.machineId) {
+    machineMatches = true;
+  } else {
+    // Try to lookup machine by the requested ID (u_id or id)
+    let machine = await getMachineById(payload.machineId);
+    
+    // If not found by u_id, maybe the request used UUID - try to find by the payment's machine_u_id
+    if (!machine) {
+      machine = await getMachineById(paymentMachineId);
+    }
+    
+    if (machine) {
+      // Check if any of the identifiers match
+      machineMatches = 
+        machine.id === paymentMachineId ||       // Payment stored UUID
+        machine.u_id === paymentMachineId ||     // Payment stored u_id
+        machine.id === payload.machineId ||      // Request used UUID
+        machine.u_id === payload.machineId;      // Request used u_id
+    }
+  }
+    
   if (!machineMatches) {
     return res.status(400).json({
       success: false,
