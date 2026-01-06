@@ -147,7 +147,11 @@ export const setPaymentRedemption = async (paymentId, points, amount) => {
 export const setDispensedQuantity = async (paymentId, productUId, qty) => {
   const { error } = await supabase
     .from('payment_products')
-    .update({ dispensed_quantity: qty, updated_at: new Date().toISOString() })
+    .update({
+      dispensed_quantity: qty,
+      dispensed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    })
     .eq('payment_id', paymentId)
     .eq('product_u_id', productUId);
   if (error) throw error;

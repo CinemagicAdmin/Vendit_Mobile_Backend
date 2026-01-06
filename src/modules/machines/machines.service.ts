@@ -11,6 +11,7 @@ import {
 } from './machines.repository.js';
 import { upsertRemoteProducts } from '../products/products.repository.js';
 import { apiError, ok } from '../../utils/response.js';
+import { createDispenseLog, updateDispenseLog } from './dispense-logs.repository.js';
 const { remoteMachineBaseUrl, remoteMachineApiKey, remoteMachinePageSize, dispenseSocketUrl } =
   getConfig();
 const client = axios.create({
@@ -243,7 +244,11 @@ const SEND_TIMEOUT_MS = 5000; // 5 seconds after sending to consider success
  * Dispatch dispense command - fire-and-forget pattern
  * Returns success once command is sent (server doesn't send acknowledgements)
  */
-export const dispatchDispenseCommand = async (machineId: string, slotNumber: string) => {
+export const dispatchDispenseCommand = async (
+  machineId: string,
+  slotNumber: string,
+  paymentId?: string
+) => {
   if (!dispenseSocketUrl) {
     throw new apiError(500, 'Dispense socket URL is not configured');
   }
@@ -251,10 +256,28 @@ export const dispatchDispenseCommand = async (machineId: string, slotNumber: str
     throw new apiError(400, 'machineId and slotNumber are required');
   }
 
+  // Create dispense log if paymentId provided
+  let logId: string | null = null;
+  if (paymentId) {
+    try {
+      const log = await createDispenseLog({
+        paymentId,
+        machineId,
+        slotNumber,
+        status: 'pending'
+      });
+      logId = log.id;
+      logger.info({ logId, paymentId, machineId, slotNumber }, 'Dispense log created');
+    } catch (error) {
+      logger.error({ error, paymentId }, 'Failed to create dispense log');
+      // Continue without log - don't block dispense
+    }
+  }
+
   const payload = JSON.stringify({ type: 'dispense', machineId, slotNumber });
 
   logger.info(
-    { socketUrl: dispenseSocketUrl, machineId, slotNumber },
+    { socketUrl: dispenseSocketUrl, machineId, slotNumber, paymentId, logId },
     'Dispatching dispense command'
   );
 
@@ -287,8 +310,26 @@ export const dispatchDispenseCommand = async (machineId: string, slotNumber: str
       }
 
       if (error) {
+        // Update log on failure
+        if (logId) {
+          updateDispenseLog(logId, {
+            status: 'failed',
+            errorMessage: error.message
+          }).catch((logError) =>
+            logger.warn({ logError }, 'Failed to update dispense log')
+          );
+        }
         reject(error);
       } else {
+        // Update log on success
+        if (logId) {
+          updateDispenseLog(logId, {
+            status: 'sent',
+            websocketResponse: { acknowledged: true, commandSent: success }
+          }).catch((logError) =>
+            logger.warn({ logError }, 'Failed to update dispense log')
+          );
+        }
         resolve(ok({ acknowledged: true, commandSent: success }, 'Dispense command sent'));
       }
     };
@@ -372,7 +413,8 @@ export const dispatchDispenseCommand = async (machineId: string, slotNumber: str
  */
 export const dispatchBatchDispenseCommand = async (
   machineId: string,
-  slots: { slotNumber: string; quantity: number }[]
+  slots: { slotNumber: string; quantity: number }[],
+  paymentId?: string
 ) => {
   if (!dispenseSocketUrl) {
     throw new apiError(500, 'Dispense socket URL is not configured');
@@ -400,7 +442,7 @@ export const dispatchBatchDispenseCommand = async (
           'Dispensing from slot'
         );
 
-        await dispatchDispenseCommand(machineId, slot.slotNumber);
+        await dispatchDispenseCommand(machineId, slot.slotNumber, paymentId);
         
         results.push({
           slotNumber: slot.slotNumber,
