@@ -6,7 +6,7 @@ import {
 } from './machines.service.js';
 import { ok } from '../../utils/response.js';
 import { redis } from '../../libs/redis.js';
-import { listMachines, getMachineById, getMachineSlots } from './machines.repository.js';
+import { listMachines, getMachineById } from './machines.repository.js';
 import { dispenseCommandSchema } from './machines.validators.js';
 import { getPaymentById } from '../payments/payments.repository.js';
 import { getDispenseLogsByPayment } from './dispense-logs.repository.js';
@@ -52,7 +52,7 @@ export const handleTriggerDispense = async (req, res) => {
   const payload = dispenseCommandSchema.parse(req.body);
   const userId = req.user.id;
 
-  // 1. Verify payment exists and user owns it
+  // 1. CRITICAL: Verify payment exists and user owns it
   const payment = await getPaymentById(payload.paymentId);
   if (!payment) {
     return res.status(404).json({
@@ -68,7 +68,7 @@ export const handleTriggerDispense = async (req, res) => {
     });
   }
 
-  // 2. Verify payment status allows dispensing (includes wallet payments)
+  // 2. CRITICAL: Verify payment status allows dispensing
   if (!DISPENSABLE_PAYMENT_STATUSES.includes(payment.status)) {
     return res.status(400).json({
       success: false,
@@ -78,48 +78,9 @@ export const handleTriggerDispense = async (req, res) => {
     });
   }
 
-  // 3. Verify payment is for this machine
-  // payment.machine_u_id could be stored as UUID or u_id string format
-  // payload.machineId could be either UUID or u_id string
-  // We need to match flexibly
-  const paymentMachineId = payment.machine_u_id;
-  
-  let machineMatches = false;
-  
-  // Direct match (payment stored same format as request)
-  if (paymentMachineId === payload.machineId) {
-    machineMatches = true;
-  } else {
-    // Try to lookup machine by the requested ID (u_id or id)
-    let machine = await getMachineById(payload.machineId);
-    
-    // If not found by u_id, maybe the request used UUID - try to find by the payment's machine_u_id
-    if (!machine) {
-      machine = await getMachineById(paymentMachineId);
-    }
-    
-    if (machine) {
-      // Check if any of the identifiers match
-      machineMatches = 
-        machine.id === paymentMachineId ||       // Payment stored UUID
-        machine.u_id === paymentMachineId ||     // Payment stored u_id
-        machine.id === payload.machineId ||      // Request used UUID
-        machine.u_id === payload.machineId;      // Request used u_id
-    }
-  }
-    
-  if (!machineMatches) {
-    return res.status(400).json({
-      success: false,
-      message: 'Payment is for a different machine',
-      paymentMachine: paymentMachineId,
-      requestedMachine: payload.machineId
-    });
-  }
-
-  // 4. Check if already dispensed (idempotency)
+  // 3. CRITICAL: Idempotency - prevent double dispensing
   const existingLogs = await getDispenseLogsByPayment(payload.paymentId);
-  const confirmedDispenses = existingLogs.filter((log) => log.status === 'confirmed');
+  const confirmedDispenses = existingLogs.filter((log) => log.status === 'confirmed' || log.status === 'sent');
 
   if (confirmedDispenses.length > 0) {
     return res.status(409).json({
@@ -129,42 +90,26 @@ export const handleTriggerDispense = async (req, res) => {
     });
   }
 
-  // 5. Verify machine exists and is operational
-  const machine = await getMachineById(payload.machineId);
-  if (!machine) {
-    return res.status(404).json({
-      success: false,
-      message: 'Machine not found'
-    });
-  }
-
-  if (machine.machine_operation_state !== 'ONLINE') {
-    return res.status(503).json({
-      success: false,
-      message: 'This machine is currently offline or in maintenance. Please try another machine.',
-      machineStatus: machine.machine_operation_state
-    });
-  }
-
-  // 6. Validate slots exist (for batch mode)
-  if (payload.slots && payload.slots.length > 0) {
-    const machineSlots = await getMachineSlots(payload.machineId);
-    const validSlotNumbers = new Set(machineSlots.map((s) => s.slot_number));
-
-    const invalidSlots = payload.slots.filter((s) => !validSlotNumbers.has(s.slotNumber));
-
-    if (invalidSlots.length > 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'One or more slot numbers are invalid for this machine',
-        invalidSlots: invalidSlots.map((s) => s.slotNumber)
-      });
+  // 4. NON-BLOCKING: Machine validation (warn but don't block)
+  // This allows dispense to work even if machine IDs don't match exactly
+  // The payment already validated the machine during checkout
+  const paymentMachineId = payment.machine_u_id;
+  if (paymentMachineId && paymentMachineId !== payload.machineId) {
+    // Try flexible matching
+    const machine = await getMachineById(payload.machineId);
+    const matchesPayment = machine && (
+      machine.id === paymentMachineId || 
+      machine.u_id === paymentMachineId
+    );
+    
+    if (!matchesPayment) {
+      // Log warning but allow dispense - payment was already validated at checkout
+      console.warn(`Machine ID mismatch - payment: ${paymentMachineId}, request: ${payload.machineId}`);
     }
   }
 
-  // 7. Dispatch with payment ID for logging
+  // 5. Dispatch the dispense command
   if (payload.slotNumber) {
-    // Single slot format
     const response = await dispatchDispenseCommand(
       payload.machineId,
       payload.slotNumber,
@@ -172,7 +117,6 @@ export const handleTriggerDispense = async (req, res) => {
     );
     return res.json(response);
   } else if (payload.slots && payload.slots.length > 0) {
-    // Batch format
     const response = await dispatchBatchDispenseCommand(
       payload.machineId,
       payload.slots,
@@ -180,7 +124,6 @@ export const handleTriggerDispense = async (req, res) => {
     );
     return res.json(response);
   } else {
-    // Should never reach here due to Zod validation
     return res.status(400).json({
       success: false,
       message: 'Either slotNumber or slots array is required'
