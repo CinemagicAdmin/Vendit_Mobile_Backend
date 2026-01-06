@@ -28,7 +28,8 @@ import {
 } from '../modules/products/products.controller.js';
 import {
   handleListMachines,
-  handleTriggerDispense
+  handleTriggerDispense,
+  handleBatchDispense
 } from '../modules/machines/machines.controller.js';
 import {
   handleCreateCard,
@@ -103,6 +104,7 @@ router.get(
   }
 );
 router.post('/users/machine/dispense', requireAuth, handleTriggerDispense);
+router.post('/users/machine/dispense/batch', requireAuth, handleBatchDispense);
 router.get('/users/category/list', requireAuth, normalizeMachineIdQuery, (req, res) =>
   handleCategories(req, res)
 );

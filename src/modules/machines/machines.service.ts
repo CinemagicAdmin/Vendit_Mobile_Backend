@@ -365,3 +365,94 @@ export const dispatchDispenseCommand = async (machineId: string, slotNumber: str
     socket.onclose = handleClose;
   });
 };
+
+/**
+ * Dispatch multiple dispense commands sequentially
+ * Handles multiple products with automatic delays between dispenses
+ */
+export const dispatchBatchDispenseCommand = async (
+  machineId: string,
+  slots: { slotNumber: string; quantity: number }[]
+) => {
+  if (!dispenseSocketUrl) {
+    throw new apiError(500, 'Dispense socket URL is not configured');
+  }
+  if (!machineId) {
+    throw new apiError(400, 'machineId is required');
+  }
+  if (!slots || slots.length === 0) {
+    throw new apiError(400, 'At least one slot is required');
+  }
+
+  const results: Array<{ slotNumber: string; success: boolean; error?: string }> = [];
+  const DELAY_BETWEEN_DISPENSES = 3000; // 3 seconds between each dispense
+
+  logger.info(
+    { machineId, slotsCount: slots.length, totalDispenses: slots.reduce((sum, s) => sum + s.quantity, 0) },
+    'Starting batch dispense'
+  );
+
+  for (const slot of slots) {
+    for (let i = 0; i < slot.quantity; i++) {
+      try {
+        logger.info(
+          { machineId, slotNumber: slot.slotNumber, iteration: i + 1, quantity: slot.quantity },
+          'Dispensing from slot'
+        );
+
+        await dispatchDispenseCommand(machineId, slot.slotNumber);
+        
+        results.push({
+          slotNumber: slot.slotNumber,
+          success: true
+        });
+
+        // Wait before next dispense (except for last one)
+        const isLastDispense = slots.indexOf(slot) === slots.length - 1 && i === slot.quantity - 1;
+        if (!isLastDispense) {
+          logger.debug({ delayMs: DELAY_BETWEEN_DISPENSES }, 'Waiting before next dispense');
+          await new Promise((resolve) => setTimeout(resolve, DELAY_BETWEEN_DISPENSES));
+        }
+      } catch (error) {
+        logger.error(
+          { error, machineId, slotNumber: slot.slotNumber, iteration: i + 1 },
+          'Dispense failed'
+        );
+        
+        results.push({
+          slotNumber: slot.slotNumber,
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+
+        // Continue with remaining dispenses even if one fails
+      }
+    }
+  }
+
+  const successCount = results.filter((r) => r.success).length;
+  const failureCount = results.filter((r) => !r.success).length;
+
+  logger.info(
+    { machineId, total: results.length, success: successCount, failed: failureCount },
+    'Batch dispense completed'
+  );
+
+  // If all failed, throw error
+  if (failureCount === results.length) {
+    throw new apiError(502, 'All dispense commands failed');
+  }
+
+  return ok(
+    {
+      total: results.length,
+      successful: successCount,
+      failed: failureCount,
+      results,
+      partialSuccess: failureCount > 0 && successCount > 0
+    },
+    failureCount > 0
+      ? `Batch dispense completed with ${failureCount} failure(s)`
+      : 'Batch dispense completed successfully'
+  );
+};

@@ -3,7 +3,8 @@ import {
   handleListMachines,
   handleMachineDetail,
   handleSyncMachines,
-  handleTriggerDispense
+  handleTriggerDispense,
+  handleBatchDispense
 } from '../modules/machines/machines.controller.js';
 import { requireAuth } from '../middleware/auth.js';
 const router = Router();
@@ -11,4 +12,5 @@ router.post('/sync', handleSyncMachines); // protect via gateway or admin auth i
 router.get('/', requireAuth, handleListMachines);
 router.get('/:machineId', requireAuth, handleMachineDetail);
 router.post('/dispense', requireAuth, handleTriggerDispense);
+router.post('/dispense/batch', requireAuth, handleBatchDispense);
 export default router;

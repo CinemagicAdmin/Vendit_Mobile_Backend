@@ -1,8 +1,16 @@
-import { dispatchDispenseCommand, getMachineDetail, syncMachines } from './machines.service.js';
+import {
+  dispatchDispenseCommand,
+  dispatchBatchDispenseCommand,
+  getMachineDetail,
+  syncMachines
+} from './machines.service.js';
 import { ok } from '../../utils/response.js';
 import { redis } from '../../libs/redis.js';
 import { listMachines } from './machines.repository.js';
-import { dispenseCommandSchema } from './machines.validators.js';
+import {
+  dispenseCommandSchema,
+  batchDispenseCommandSchema
+} from './machines.validators.js';
 export const handleSyncMachines = async (_req, res) => {
   const response = await syncMachines();
   await redis.del(`machines:list:*`);
@@ -49,5 +57,11 @@ export const handleMachineDetail = async (req, res) => {
 export const handleTriggerDispense = async (req, res) => {
   const payload = dispenseCommandSchema.parse(req.body);
   const response = await dispatchDispenseCommand(payload.machineId, payload.slotNumber);
+  return res.json(response);
+};
+
+export const handleBatchDispense = async (req, res) => {
+  const payload = batchDispenseCommandSchema.parse(req.body);
+  const response = await dispatchBatchDispenseCommand(payload.machineId, payload.slots);
   return res.json(response);
 };
