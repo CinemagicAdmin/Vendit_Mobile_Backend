@@ -79,26 +79,29 @@ export const handleTriggerDispense = async (req, res) => {
   }
 
   // 3. Verify payment is for this machine
-  // payment.machine_u_id could be either UUID or u_id string format
-  // payload.machineId is typically the u_id (e.g., "VendTest", "VENDIT_0023")
+  // Both payment and request can use either UUID or u_id format
+  // We fetch the machine to get both formats and check if they match
+  const requestedMachine = await getMachineById(payload.machineId);
+  if (!requestedMachine) {
+    return res.status(404).json({
+      success: false,
+      message: 'Machine not found'
+    });
+  }
+
+  // Check if payment's machine_u_id matches either the requested machine's u_id or UUID
   const paymentMachineId = payment.machine_u_id;
+  const machineMatches = 
+    paymentMachineId === requestedMachine.u_id ||  // Both using u_id
+    paymentMachineId === requestedMachine.id;       // Payment has UUID, request has u_id
   
-  if (paymentMachineId !== payload.machineId) {
-    // Try to match by UUID if direct comparison fails
-    const machine = await getMachineById(payload.machineId);
-    const machineMatches = machine && (
-      machine.id === paymentMachineId || 
-      machine.u_id === paymentMachineId
-    );
-    
-    if (!machineMatches) {
-      return res.status(400).json({
-        success: false,
-        message: 'Payment is for a different machine',
-        paymentMachine: paymentMachineId,
-        requestedMachine: payload.machineId
-      });
-    }
+  if (!machineMatches) {
+    return res.status(400).json({
+      success: false,
+      message: 'Payment is for a different machine',
+      paymentMachine: paymentMachineId,
+      requestedMachine: payload.machineId
+    });
   }
 
   // 4. Check if already dispensed (idempotency)
