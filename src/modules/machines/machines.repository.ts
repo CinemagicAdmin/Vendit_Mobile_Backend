@@ -96,9 +96,17 @@ export const listMachines = async () => {
   return data;
 };
 export const getMachineById = async (id) => {
-  const { data, error } = await supabase.from('machines').select('*').eq('u_id', id).maybeSingle();
+  // First try by u_id (string like "VendTest", "VENDIT_0023")
+  const { data: dataByUid, error } = await supabase.from('machines').select('*').eq('u_id', id).maybeSingle();
   if (error) throw error;
-  return data;
+  
+  if (dataByUid) return dataByUid;
+  
+  // If not found by u_id, try by id (UUID)
+  const { data: dataById, error: idError } = await supabase.from('machines').select('*').eq('id', id).maybeSingle();
+  if (idError) throw idError;
+  
+  return dataById;
 };
 export const getMachineSlots = async (machineUId) => {
   const { data, error } = await supabase
