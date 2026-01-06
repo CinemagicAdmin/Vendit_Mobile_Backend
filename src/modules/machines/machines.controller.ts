@@ -79,13 +79,27 @@ export const handleTriggerDispense = async (req, res) => {
   }
 
   // 3. Verify payment is for this machine
-  if (payment.machine_u_id !== payload.machineId) {
-    return res.status(400).json({
-      success: false,
-      message: 'Payment is for a different machine',
-      paymentMachine: payment.machine_u_id,
-      requestedMachine: payload.machineId
-    });
+  // payment.machine_u_id could be either UUID or u_id string format
+  // payload.machineId is typically the u_id (e.g., "VendTest", "VENDIT_0023")
+  // We need to check both machine_id (UUID) and machine_u_id (u_id string)
+  const paymentMachineId = payment.machine_u_id || payment.machine_id;
+  
+  if (paymentMachineId !== payload.machineId) {
+    // Try to match by UUID if direct comparison fails
+    const machine = await getMachineById(payload.machineId);
+    const machineMatches = machine && (
+      machine.id === paymentMachineId || 
+      machine.u_id === paymentMachineId
+    );
+    
+    if (!machineMatches) {
+      return res.status(400).json({
+        success: false,
+        message: 'Payment is for a different machine',
+        paymentMachine: paymentMachineId,
+        requestedMachine: payload.machineId
+      });
+    }
   }
 
   // 4. Check if already dispensed (idempotency)
