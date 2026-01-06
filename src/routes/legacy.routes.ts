@@ -28,8 +28,7 @@ import {
 } from '../modules/products/products.controller.js';
 import {
   handleListMachines,
-  handleTriggerDispense,
-  handleBatchDispense
+  handleTriggerDispense
 } from '../modules/machines/machines.controller.js';
 import {
   handleCreateCard,
@@ -103,8 +102,7 @@ router.get(
     }
   }
 );
-router.post('/users/machine/dispense', requireAuth, handleTriggerDispense);
-router.post('/users/machine/dispense/batch', requireAuth, handleBatchDispense);
+router.post('/users/machine/dispense', requireAuth, handleTriggerDispense); // Handles both single & batch
 router.get('/users/category/list', requireAuth, normalizeMachineIdQuery, (req, res) =>
   handleCategories(req, res)
 );

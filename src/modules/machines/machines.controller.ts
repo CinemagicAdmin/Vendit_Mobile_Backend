@@ -7,10 +7,7 @@ import {
 import { ok } from '../../utils/response.js';
 import { redis } from '../../libs/redis.js';
 import { listMachines } from './machines.repository.js';
-import {
-  dispenseCommandSchema,
-  batchDispenseCommandSchema
-} from './machines.validators.js';
+import { dispenseCommandSchema } from './machines.validators.js';
 export const handleSyncMachines = async (_req, res) => {
   const response = await syncMachines();
   await redis.del(`machines:list:*`);
@@ -56,12 +53,22 @@ export const handleMachineDetail = async (req, res) => {
 };
 export const handleTriggerDispense = async (req, res) => {
   const payload = dispenseCommandSchema.parse(req.body);
-  const response = await dispatchDispenseCommand(payload.machineId, payload.slotNumber);
-  return res.json(response);
+  
+  // Auto-detect format: single slot or batch
+  if (payload.slotNumber) {
+    // Legacy single slot format
+    const response = await dispatchDispenseCommand(payload.machineId, payload.slotNumber);
+    return res.json(response);
+  } else if (payload.slots && payload.slots.length > 0) {
+    // New batch format
+    const response = await dispatchBatchDispenseCommand(payload.machineId, payload.slots);
+    return res.json(response);
+  } else {
+    // Should never reach here due to Zod validation
+    return res.status(400).json({
+      success: false,
+      message: 'Either slotNumber or slots array is required'
+    });
+  }
 };
 
-export const handleBatchDispense = async (req, res) => {
-  const payload = batchDispenseCommandSchema.parse(req.body);
-  const response = await dispatchBatchDispenseCommand(payload.machineId, payload.slots);
-  return res.json(response);
-};
