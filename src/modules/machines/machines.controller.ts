@@ -81,8 +81,7 @@ export const handleTriggerDispense = async (req, res) => {
   // 3. Verify payment is for this machine
   // payment.machine_u_id could be either UUID or u_id string format
   // payload.machineId is typically the u_id (e.g., "VendTest", "VENDIT_0023")
-  // We need to check both machine_id (UUID) and machine_u_id (u_id string)
-  const paymentMachineId = payment.machine_u_id || payment.machine_id;
+  const paymentMachineId = payment.machine_u_id;
   
   if (paymentMachineId !== payload.machineId) {
     // Try to match by UUID if direct comparison fails
