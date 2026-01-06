@@ -3,7 +3,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Create dispense_logs table for tracking all dispense attempts
 CREATE TABLE IF NOT EXISTS dispense_logs (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   payment_id UUID REFERENCES payments(id) ON DELETE CASCADE,
   machine_id TEXT NOT NULL,
   slot_number TEXT NOT NULL,
