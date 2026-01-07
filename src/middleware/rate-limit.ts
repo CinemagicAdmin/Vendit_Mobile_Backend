@@ -33,3 +33,27 @@ export const dispenseLimiter = rateLimit({
     });
   }
 });
+
+/**
+ * Rate limiter for payment endpoints
+ * Prevents spam and potential fraud - max 10 payments per minute
+ */
+export const paymentLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute window
+  max: 10, // Max 10 payment requests per minute
+  standardHeaders: true,
+  legacyHeaders: false,
+  
+  keyGenerator: (req) => {
+    return req.user?.id || req.ip;
+  },
+  
+  handler: (req, res) => {
+    const resetTime = (req as any).rateLimit?.resetTime || Date.now() + 60000;
+    res.status(429).json({
+      success: false,
+      message: 'Too many payment attempts. Please wait a moment.',
+      retryAfter: Math.ceil(resetTime / 1000)
+    });
+  }
+});

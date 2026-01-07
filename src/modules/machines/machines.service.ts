@@ -463,7 +463,7 @@ export const dispatchBatchDispenseCommand = async (
   }
 
   const results: Array<{ slotNumber: string; success: boolean; error?: string }> = [];
-  const DELAY_BETWEEN_DISPENSES = 3000; // 3 seconds between each dispense
+  const DELAY_BETWEEN_DISPENSES = 1000; // 1 second between each dispense (reduced from 3s)
 
   logger.info(
     { machineId, slotsCount: slots.length, totalDispenses: slots.reduce((sum, s) => sum + s.quantity, 0) },
