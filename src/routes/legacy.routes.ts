@@ -49,6 +49,7 @@ import {
 } from '../modules/payments/payments.controller.js';
 import { handleLatestCampaign } from '../modules/campaigns/campaigns.controller.js';
 import { requireAuth } from '../middleware/auth.js';
+import { dispenseLimiter } from '../middleware/rate-limit.js';
 import { getMachineDetail } from '../modules/machines/machines.service.js';
 import { ok } from '../utils/response.js';
 
@@ -102,7 +103,7 @@ router.get(
     }
   }
 );
-router.post('/users/machine/dispense', requireAuth, handleTriggerDispense); // Handles both single & batch
+router.post('/users/machine/dispense', requireAuth, dispenseLimiter , handleTriggerDispense); // Rate limited
 router.get('/users/category/list', requireAuth, normalizeMachineIdQuery, (req, res) =>
   handleCategories(req, res)
 );
