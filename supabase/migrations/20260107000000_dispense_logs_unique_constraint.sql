@@ -3,14 +3,14 @@
 -- Prevents race condition where two requests could both pass idempotency check
 
 -- Step 1: Clean up existing duplicates
--- Keep only the most recent log for each payment_id with active status
+-- Keep only the most recent log for each payment_id + slot_number with active status
 DELETE FROM dispense_logs
 WHERE id IN (
   SELECT id FROM (
     SELECT 
       id,
       ROW_NUMBER() OVER (
-        PARTITION BY payment_id 
+        PARTITION BY payment_id, slot_number
         ORDER BY created_at DESC
       ) as rn
     FROM dispense_logs
@@ -19,10 +19,13 @@ WHERE id IN (
   WHERE rn > 1
 );
 
--- Step 2: Create unique index to prevent future duplicates
-CREATE UNIQUE INDEX IF NOT EXISTS idx_dispense_logs_payment_active
-ON dispense_logs(payment_id)
+-- Drop old constraint if exists (might be wrong)
+DROP INDEX IF EXISTS idx_dispense_logs_payment_active;
+
+-- Step 2: Create unique index per payment + slot (allows batch dispenses)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_dispense_logs_payment_slot_active
+ON dispense_logs(payment_id, slot_number)
 WHERE status IN ('pending', 'sent');
 
-COMMENT ON INDEX idx_dispense_logs_payment_active IS 
-'Ensures only one active dispense attempt per payment - prevents race conditions';
+COMMENT ON INDEX idx_dispense_logs_payment_slot_active IS 
+'Ensures only one active dispense attempt per payment+slot - prevents race conditions while allowing batch dispenses';
