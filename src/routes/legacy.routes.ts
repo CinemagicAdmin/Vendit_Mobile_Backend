@@ -49,7 +49,7 @@ import {
 } from '../modules/payments/payments.controller.js';
 import { handleLatestCampaign } from '../modules/campaigns/campaigns.controller.js';
 import { requireAuth } from '../middleware/auth.js';
-import { dispenseLimiter } from '../middleware/rate-limit.js';
+import { dispenseLimiter } from '../middleware/rate-limiters.js';
 import { getMachineDetail } from '../modules/machines/machines.service.js';
 import { ok } from '../utils/response.js';
 

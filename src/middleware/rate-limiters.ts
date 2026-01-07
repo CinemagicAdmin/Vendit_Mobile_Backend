@@ -132,11 +132,11 @@ export const cardLimiter = rateLimit({
 
 /**
  * Dispense rate limiter
- * 20 dispense commands per minute per user
+ * 10 dispense commands per minute per user
  */
 export const dispenseLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
-  max: 20,
+  max: 10,
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator,

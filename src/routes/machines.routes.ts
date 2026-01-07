@@ -6,7 +6,7 @@ import {
   handleTriggerDispense
 } from '../modules/machines/machines.controller.js';
 import { requireAuth } from '../middleware/auth.js';
-import { dispenseLimiter } from '../middleware/rate-limit.js';
+import { dispenseLimiter } from '../middleware/rate-limiters.js';
 
 const router = Router();
 router.post('/sync', handleSyncMachines); // protect via gateway or admin auth in production
