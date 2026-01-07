@@ -5,11 +5,13 @@ import { cacheWrap, CacheKeys, CacheTTL } from '../../libs/cache.js';
 import {
   getMachineById,
   getMachineSlots,
+  getMachineSlotsWithProductIds,
   listMachines,
   upsertMachines,
   upsertSlots
 } from './machines.repository.js';
 import { upsertRemoteProducts } from '../products/products.repository.js';
+import { setDispensedQuantity } from '../payments/payments.repository.js';
 import { apiError, ok } from '../../utils/response.js';
 import { createDispenseLog, updateDispenseLog } from './dispense-logs.repository.js';
 const { remoteMachineBaseUrl, remoteMachineApiKey, remoteMachinePageSize, dispenseSocketUrl } =
@@ -241,6 +243,21 @@ const CONNECTION_TIMEOUT_MS = 10000; // 10 seconds to connect
 const SEND_TIMEOUT_MS = 5000; // 5 seconds after sending to consider success
 
 /**
+ * Helper function to get product_u_id for a given slot number
+ * Returns null if slot not found
+ */
+const getProductForSlot = async (machineId: string, slotNumber: string): Promise<string | null> => {
+  try {
+    const slots = await getMachineSlotsWithProductIds(machineId);
+    const slot = slots?.find((s) => s.slot_number === slotNumber);
+    return slot?.product_u_id ?? null;
+  } catch (error) {
+    logger.error({ error, machineId, slotNumber }, 'Failed to get product for slot');
+    return null;
+  }
+};
+
+/**
  * Dispatch dispense command - fire-and-forget pattern
  * Returns success once command is sent (server doesn't send acknowledgements)
  */
@@ -330,6 +347,25 @@ export const dispatchDispenseCommand = async (
             logger.warn({ logError }, 'Failed to update dispense log')
           );
         }
+        
+        // Update payment_products with dispensed quantity
+        if (paymentId && machineId && slotNumber) {
+          getProductForSlot(machineId, slotNumber)
+            .then((productId) => {
+              if (productId) {
+                return setDispensedQuantity(paymentId, productId, 1);
+              }
+              return Promise.resolve(); // No product found, that's okay
+            })
+            .then(() => {
+              logger.info({ paymentId, machineId, slotNumber }, 'Updated payment_products');
+            })
+            .catch((trackingError) => {
+              logger.error({ trackingError, paymentId }, 'Failed to update payment_products');
+              // Don't fail the dispense - product tracking is secondary
+            });
+        }
+        
         resolve(ok({ acknowledged: true, commandSent: success }, 'Dispense command sent'));
       }
     };

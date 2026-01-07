@@ -123,6 +123,16 @@ export const getMachineSlots = async (machineUId) => {
   if (error) throw error;
   return data;
 };
+
+export const getMachineSlotsWithProductIds = async (machineUId) => {
+  const { data, error } = await supabase
+    .from('machine_slots')
+    .select('slot_number, product_u_id')
+    .eq('machine_u_id', machineUId);
+  if (error) throw error;
+  return data;
+};
+
 export const updateMachineQrCode = async (machineId, qrPath) => {
   const { data, error } = await supabase
     .from('machines')

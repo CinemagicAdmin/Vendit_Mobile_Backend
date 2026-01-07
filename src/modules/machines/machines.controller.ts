@@ -6,6 +6,7 @@ import {
 } from './machines.service.js';
 import { ok } from '../../utils/response.js';
 import { redis } from '../../libs/redis.js';
+import { logger } from '../../config/logger.js';
 import { listMachines, getMachineById } from './machines.repository.js';
 import { dispenseCommandSchema } from './machines.validators.js';
 import { getPaymentById } from '../payments/payments.repository.js';
@@ -79,8 +80,9 @@ export const handleTriggerDispense = async (req, res) => {
   }
 
   // 3. CRITICAL: Idempotency - prevent double dispensing
+  // Only check 'confirmed' status - 'sent' means WebSocket sent but not necessarily dispensed
   const existingLogs = await getDispenseLogsByPayment(payload.paymentId);
-  const confirmedDispenses = existingLogs.filter((log) => log.status === 'confirmed' || log.status === 'sent');
+  const confirmedDispenses = existingLogs.filter((log) => log.status === 'confirmed');
 
   if (confirmedDispenses.length > 0) {
     return res.status(409).json({
@@ -104,7 +106,10 @@ export const handleTriggerDispense = async (req, res) => {
     
     if (!matchesPayment) {
       // Log warning but allow dispense - payment was already validated at checkout
-      console.warn(`Machine ID mismatch - payment: ${paymentMachineId}, request: ${payload.machineId}`);
+      logger.warn(
+        { paymentMachine: paymentMachineId, requestedMachine: payload.machineId },
+        'Machine ID mismatch - allowing dispense'
+      );
     }
   }
 
