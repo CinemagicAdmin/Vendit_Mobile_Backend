@@ -487,6 +487,8 @@ export const dispatchBatchDispenseCommand = async (
 
   return ok(
     {
+      acknowledged: true,
+      commandSent: successCount > 0,
       total: results.length,
       successful: successCount,
       failed: failureCount,
