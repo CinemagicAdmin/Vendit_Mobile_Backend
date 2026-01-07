@@ -156,6 +156,38 @@ export const setDispensedQuantity = async (paymentId, productUId, qty) => {
     .eq('product_u_id', productUId);
   if (error) throw error;
 };
+
+/**
+ * Increment dispensed_quantity by the given amount
+ * Used for dispense tracking to properly accumulate quantities
+ */
+export const incrementDispensedQuantity = async (paymentId, productUId, incrementBy = 1) => {
+  // First get current value
+  const { data, error: fetchError } = await supabase
+    .from('payment_products')
+    .select('dispensed_quantity')
+    .eq('payment_id', paymentId)
+    .eq('product_u_id', productUId)
+    .maybeSingle();
+  
+  if (fetchError) throw fetchError;
+  
+  const currentQty = data?.dispensed_quantity || 0;
+  const newQty = currentQty + incrementBy;
+  
+  const { error: updateError } = await supabase
+    .from('payment_products')
+    .update({
+      dispensed_quantity: newQty,
+      dispensed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    })
+    .eq('payment_id', paymentId)
+    .eq('product_u_id', productUId);
+  
+  if (updateError) throw updateError;
+  return newQty;
+};
 export const createLoyaltyEntry = async (payload) => {
   const { error } = await supabase.from('loyalty_points').insert({
     user_id: payload.userId,

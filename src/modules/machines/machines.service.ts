@@ -11,7 +11,7 @@ import {
   upsertSlots
 } from './machines.repository.js';
 import { upsertRemoteProducts } from '../products/products.repository.js';
-import { setDispensedQuantity } from '../payments/payments.repository.js';
+import { incrementDispensedQuantity } from '../payments/payments.repository.js';
 import { apiError, ok } from '../../utils/response.js';
 import { createDispenseLog, updateDispenseLog } from './dispense-logs.repository.js';
 const { remoteMachineBaseUrl, remoteMachineApiKey, remoteMachinePageSize, dispenseSocketUrl } =
@@ -353,7 +353,7 @@ export const dispatchDispenseCommand = async (
           getProductForSlot(machineId, slotNumber)
             .then((productId) => {
               if (productId) {
-                return setDispensedQuantity(paymentId, productId, 1);
+                return incrementDispensedQuantity(paymentId, productId, 1);
               }
               return Promise.resolve(); // No product found, that's okay
             })

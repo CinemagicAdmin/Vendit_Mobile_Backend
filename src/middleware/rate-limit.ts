@@ -14,7 +14,7 @@ export const rateLimiter = rateLimit({
  */
 export const dispenseLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute window
-  max: 5, // Max 5 requests per minute
+  max: 10, // Max 10 requests per minute
   standardHeaders: true,
   legacyHeaders: false,
   
