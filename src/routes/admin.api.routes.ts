@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { cookieAuth } from '../middleware/cookie-auth.middleware.js';
+import { adminAuthLimiter, adminLimiter } from '../middleware/rate-limiters.js';
 import {
   loginApi,
   getMeApi,
@@ -75,15 +76,16 @@ import { handleCacheStats, handleCacheClear } from '../modules/admin/admin.cache
 const router = Router();
 
 // =============================================================================
-// Authentication Routes (no token required)
+// Authentication Routes (no token required, but rate limited)
 // =============================================================================
-router.post('/auth/login', loginApi);
-router.post('/auth/refresh', refreshTokenApi); // New: Token refresh
+router.post('/auth/login', adminAuthLimiter, loginApi);
+router.post('/auth/refresh', adminAuthLimiter, refreshTokenApi);
 
 // =============================================================================
 // Protected Routes (require JWT token via cookies or header)
 // =============================================================================
 router.use(cookieAuth); // All routes below require authentication
+router.use(adminLimiter); // Apply rate limiting to all admin routes
 
 // Authentication
 router.get('/auth/me', getMeApi);
