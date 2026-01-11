@@ -12,6 +12,20 @@ import { apiError, ok } from '../../utils/response.js';
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../../utils/jwt.js';
 import { ensureReferralCode, processReferralReward } from '../referrals/referrals.service.js';
 const OTP_TTL_SECONDS = 5 * 60;
+
+// Test mobile number for App Store / Play Store verification
+// This number bypasses real OTP flow with a fixed OTP
+const TEST_MOBILE_NUMBER = '9914341055';
+const TEST_COUNTRY_CODE = '+91';
+const TEST_OTP = '4444';
+
+const isTestPhoneNumber = (phoneNumber: string, countryCode?: string) => {
+  const normalizedPhone = phoneNumber?.replace(/\D/g, '');
+  const normalizedTestNumber = TEST_MOBILE_NUMBER.replace(/\D/g, '');
+  const codeMatches = !countryCode || countryCode === TEST_COUNTRY_CODE || countryCode === '91';
+  return normalizedPhone === normalizedTestNumber && codeMatches;
+};
+
 const generateOtp = () => Math.floor(1000 + Math.random() * 9000).toString();
 const otpCacheKey = (phone) => `otp:${phone}`;
 const sendOtp = async (phone, otp) => {
@@ -94,6 +108,14 @@ const queueOtpForPhone = async (input) => {
   if (!input.countryCode) {
     throw new apiError(400, 'Country code required');
   }
+  
+  // Check if this is the test phone number for App Store / Play Store verification
+  if (isTestPhoneNumber(input.phoneNumber, input.countryCode)) {
+    logger.info({ phone: input.phoneNumber }, 'Test phone number detected - using fixed OTP, skipping SMS');
+    await redis.setex(otpCacheKey(input.phoneNumber), OTP_TTL_SECONDS, TEST_OTP);
+    return { otp: TEST_OTP, expose: true }; // Always expose for test number
+  }
+  
   const otp = generateOtp();
   await redis.setex(otpCacheKey(input.phoneNumber), OTP_TTL_SECONDS, otp);
   const expose = await sendOtp(`${input.countryCode}${input.phoneNumber}`, otp);
