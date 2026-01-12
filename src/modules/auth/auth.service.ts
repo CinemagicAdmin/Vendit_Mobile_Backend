@@ -11,7 +11,77 @@ import {
 import { apiError, ok } from '../../utils/response.js';
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../../utils/jwt.js';
 import { ensureReferralCode, processReferralReward } from '../referrals/referrals.service.js';
+import {
+  ensureWallet,
+  incrementWallet,
+  recordWalletTransaction
+} from '../payments/payments.repository.js';
+import { sendNotification } from '../notifications/notifications.service.js';
+import { supabase } from '../../libs/supabase.js';
+
 const OTP_TTL_SECONDS = 5 * 60;
+
+// Welcome bonus for first 200 users
+const WELCOME_BONUS_AMOUNT = 2; // 2 KD
+const WELCOME_BONUS_LIMIT = 200; // First 200 users
+
+// Count verified users to check welcome bonus eligibility
+const countVerifiedUsers = async (): Promise<number> => {
+  const { count, error } = await supabase
+    .from('users')
+    .select('id', { count: 'exact', head: true })
+    .eq('is_otp_verify', 1);
+  if (error) {
+    logger.error({ error }, 'Failed to count verified users');
+    return WELCOME_BONUS_LIMIT + 1; // Return high number to skip bonus on error
+  }
+  return count ?? 0;
+};
+
+// Award welcome bonus to new user
+const awardWelcomeBonus = async (userId: string): Promise<boolean> => {
+  try {
+    const verifiedCount = await countVerifiedUsers();
+    
+    if (verifiedCount > WELCOME_BONUS_LIMIT) {
+      logger.info({ verifiedCount }, 'Welcome bonus limit reached, skipping');
+      return false;
+    }
+    
+    logger.info(
+      { userId, verifiedCount, bonusAmount: WELCOME_BONUS_AMOUNT },
+      'Awarding welcome bonus to new user'
+    );
+    
+    // Ensure wallet exists and credit the bonus
+    await ensureWallet(userId);
+    await incrementWallet(userId, WELCOME_BONUS_AMOUNT);
+    
+    // Record the transaction
+    await recordWalletTransaction({
+      userId,
+      paymentId: null,
+      type: 'credit',
+      amount: WELCOME_BONUS_AMOUNT,
+      metadata: { reason: 'welcome_bonus', userNumber: verifiedCount }
+    });
+    
+    // Send notification
+    await sendNotification({
+      receiverId: userId,
+      title: 'Welcome Bonus! 🎉',
+      body: `You've received KWD ${WELCOME_BONUS_AMOUNT.toFixed(3)} as a welcome gift! Enjoy your purchase.`,
+      type: 'WalletCredit',
+      data: { amount: WELCOME_BONUS_AMOUNT, reason: 'welcome_bonus' }
+    });
+    
+    logger.info({ userId, verifiedCount }, 'Welcome bonus awarded successfully');
+    return true;
+  } catch (error) {
+    logger.error({ error, userId }, 'Failed to award welcome bonus');
+    return false; // Don't fail registration if bonus fails
+  }
+};
 
 // Test mobile number for App Store / Play Store verification
 // This number bypasses real OTP flow with a fixed OTP
@@ -279,6 +349,10 @@ export const verifyOtp = async (userId, input) => {
   if (!cachedOtp || cachedOtp !== input.otp) {
     throw new apiError(400, 'Incorrect OTP');
   }
+  
+  // Check if this is a first-time verification (user was not verified before)
+  const isFirstTimeVerification = !user.isOtpVerify && !user.is_otp_verify;
+  
   const updated = await partialUpdateUser(user.id, {
     isOtpVerify: true,
     status: 1,
@@ -290,12 +364,22 @@ export const verifyOtp = async (userId, input) => {
   });
   await redis.del(otpCacheKey(phoneNumber));
   if (!updated) throw new apiError(400, 'User verification failed');
+  
   await processReferralReward(updated, phoneNumber, {
     referralCode: input.referralCode,
     referrerId: input.referrerId,
     branchIdentity: input.branchIdentity,
     branchInstallId: input.branchInstallId
   });
+  
+  // Award welcome bonus for first-time users (first 200 only)
+  if (isFirstTimeVerification) {
+    // Fire and forget - don't block the response
+    awardWelcomeBonus(updated.id).catch((err) => {
+      logger.error({ err, userId: updated.id }, 'Welcome bonus failed silently');
+    });
+  }
+  
   const tokens = issueTokens(updated.id, updated.email);
   return ok(buildAuthResponse(updated, tokens), 'OTP verified successfully');
 };
