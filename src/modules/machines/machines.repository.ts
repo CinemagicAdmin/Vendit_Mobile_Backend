@@ -28,7 +28,7 @@ const mapRemoteMachine = (machine) => {
     location_longitude: machine.location_longitude ?? null,
     mac_address: machine.mac_address ?? null,
     security_id: machine.security_id ?? null,
-    machine_image_url: machine.machine_image_url ?? null,
+    machine_image_url: machine.image_url ?? null,
     machine_operation_state: machine.machine_operation_state ?? fallbackStatus,
     subscription_expiry: machine.subscription_expiry ?? null,
     last_hearbeat: machine.last_hearbeat ?? null,
