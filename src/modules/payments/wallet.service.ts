@@ -77,7 +77,7 @@ export const chargeWallet = async (userId, input) => {
     type: 'WalletCredit',
     data: { paymentId: payment.id, amount: input.amount }
   });
-  return ok({ balance: wallet?.balance ?? input.amount, payment }, 'Wallet charged successfully');
+  return ok({ balance: wallet?.balance ?? input.amount, payment, status: payment.status }, 'Wallet charged successfully');
 };
 export const payWithWallet = async (userId, input) => {
   const redemption = await calculateRedemption(
@@ -152,6 +152,7 @@ export const payWithWallet = async (userId, input) => {
     {
       balance: wallet?.balance ?? 0,
       payment,
+      status: payment.status,
       points,
       redeemedPoints: redemption.pointsRedeemed,
       redeemedAmount: redemption.redeemValue
