@@ -91,13 +91,37 @@ export const tapCreateChargeWithToken = async (payload) => {
   return data;
 };
 export const tapCreateGPayToken = async (payload) => {
+  // Normalize payment method type for Tap API
+  // Tap expects lowercase: 'applepay', 'googlepay', etc.
+  let type = payload.paymentMethodType?.toLowerCase() ?? 'applepay';
+  
+  // Map common variations to Tap-expected values
+  if (type === 'apple_pay' || type === 'apple-pay' || type === 'apple') {
+    type = 'applepay';
+  } else if (type === 'google_pay' || type === 'google-pay' || type === 'google' || type === 'gpay') {
+    type = 'googlepay';
+  }
+  
   const body = {
-    type: payload.paymentMethodType,
+    type,
     token_data: payload.tokenData,
     client_ip: '127.0.0.1'
   };
-  const { data } = await tap.post('/tokens', body);
-  return data;
+  
+  try {
+    const { data } = await tap.post('/tokens', body);
+    return data;
+  } catch (error: any) {
+    // Log detailed error for debugging
+    const errDetails = {
+      status: error.response?.status,
+      data: error.response?.data,
+      type,
+      hasTokenData: !!payload.tokenData
+    };
+    console.error('Tap token creation failed:', errDetails);
+    throw error;
+  }
 };
 export const tapListCards = async (customerId) => {
   const { data } = await tap.get(`/card/${customerId}`);
