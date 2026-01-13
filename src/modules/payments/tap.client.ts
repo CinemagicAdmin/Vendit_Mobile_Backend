@@ -63,13 +63,14 @@ export const tapCreateCharge = async (payload) => {
     amount: payload.amount,
     currency: payload.currency,
     customer_initiated: true,
+    threeDSecure: true,
     save_card: true,
     reference: { order: payload.orderRef },
     description: 'Vend-IT vending purchase',
     customer: { id: payload.customerId },
     source: { id: payload.sourceId },
-    post: { url: 'https://vendit.example.com/hooks/tap/post' },
-    redirect: { url: 'https://vendit.example.com/hooks/tap/redirect' }
+    post: { url: process.env.TAP_WEBHOOK_URL || 'https://vendit.example.com/hooks/tap/post' },
+    redirect: { url: process.env.TAP_REDIRECT_URL || 'https://vendit.example.com/hooks/tap/redirect' }
   };
   const { data } = await tap.post('/charges', body);
   return data;
