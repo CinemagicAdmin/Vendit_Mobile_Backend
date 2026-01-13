@@ -37,6 +37,7 @@ const mapRemoteMachine = (machine) => {
     machine_pin: machine.machine_pin ?? null,
     machine_socket: machine.machine_socket ?? null,
     machine_qrcode: machine.machine_qrcode ?? null,
+    category: machine.category ?? null,
     created_at: machine.created_at ?? new Date().toISOString(),
     updated_at: machine.updated_at ?? machine.created_at ?? new Date().toISOString()
   };
