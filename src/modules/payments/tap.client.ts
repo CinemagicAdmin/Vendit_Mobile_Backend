@@ -79,16 +79,45 @@ export const tapCreateChargeWithToken = async (payload) => {
     amount: payload.amount,
     currency: payload.currency,
     customer_initiated: true,
+    threeDSecure: true, // Required for Apple Pay and Google Pay
     save_card: false,
     reference: { order: payload.orderRef },
-    description: 'Vend-IT gpay payment',
-    customer: { first_name: payload.firstName, email: payload.email },
+    description: 'Vend-IT payment',
+    customer: { 
+      first_name: payload.firstName, 
+      email: payload.email,
+      phone: payload.phone ? {
+        country_code: '965',
+        number: payload.phone
+      } : undefined
+    },
     source: { id: payload.tokenId },
-    post: { url: 'https://vendit.example.com/hooks/tap/post' },
-    redirect: { url: 'https://vendit.example.com/hooks/tap/redirect' }
+    post: { url: process.env.TAP_WEBHOOK_URL || 'https://vendit.example.com/hooks/tap/post' },
+    redirect: { url: process.env.TAP_REDIRECT_URL || 'https://vendit.example.com/hooks/tap/redirect' }
   };
-  const { data } = await tap.post('/charges', body);
-  return data;
+  
+  try {
+    const { data } = await tap.post('/charges', body);
+    
+    // Log charge response for debugging
+    console.log('Tap charge response:', {
+      id: data.id,
+      status: data.status,
+      source: data.source?.payment_method,
+      transaction: data.transaction?.authorization_id
+    });
+    
+    return data;
+  } catch (error: any) {
+    const errDetails = {
+      status: error.response?.status,
+      data: error.response?.data,
+      tokenId: payload.tokenId,
+      amount: payload.amount
+    };
+    console.error('Tap charge creation failed:', errDetails);
+    throw error;
+  }
 };
 export const tapCreateGPayToken = async (payload) => {
   // Normalize payment method type for Tap API
