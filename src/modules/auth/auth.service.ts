@@ -61,7 +61,7 @@ const awardWelcomeBonus = async (userId: string): Promise<boolean> => {
     await recordWalletTransaction({
       userId,
       paymentId: null,
-      type: 'credit',
+      type: 'CREDIT',
       amount: WELCOME_BONUS_AMOUNT,
       metadata: { reason: 'welcome_bonus', userNumber: verifiedCount }
     });
