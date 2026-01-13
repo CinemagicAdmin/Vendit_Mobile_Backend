@@ -17,7 +17,7 @@ const REFERRAL_CODE_LENGTH = 6;
 const formatShareLink = (code) => {
   const base = config.referralShareBaseUrl;
   if (!base || !base.length) {
-    return `https://rv1sb.test-app.link/invite?code=${code}`;
+    return `invite.tryvendit.com/invite?code=${code}`;
   }
   if (base.includes('{code}')) {
     return base.replace('{code}', code);
