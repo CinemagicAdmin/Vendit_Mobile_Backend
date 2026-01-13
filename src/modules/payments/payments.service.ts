@@ -453,6 +453,10 @@ export const getWalletHistory = async (userId) => {
   const transactions = history.map((entry) => {
     const payment =
       entry.payment && Array.isArray(entry.payment) ? entry.payment[0] : entry.payment;
+    
+    // Derive status from payment or transaction type
+    const status = payment?.status ?? (entry.type === 'credit' ? 'CREDIT' : entry.type === 'debit' ? 'DEBIT' : entry.type?.toUpperCase() ?? null);
+    
     return {
       type: entry.type,
       amount: payment?.amount ?? entry.amount,
@@ -462,10 +466,11 @@ export const getWalletHistory = async (userId) => {
       user_id: payment?.user_id ?? userId,
       machine_id: payment?.machine_u_id ?? null,
       transaction_id: payment?.transaction_id ?? null,
-      status: payment?.status ?? null,
+      status,
       payment_method: payment?.payment_method ?? 'WALLET',
       created_at: payment?.created_at ?? entry.created_at,
-      updated_at: payment?.updated_at ?? entry.created_at
+      updated_at: payment?.updated_at ?? entry.created_at,
+      metadata: entry.metadata ?? null
     };
   });
   return ok(
