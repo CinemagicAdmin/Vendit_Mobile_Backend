@@ -24,7 +24,14 @@ export const handleListMachines = async (req, res) => {
   const offset = Number(req.query.offset) || 0;
 
   const allMachines = await listMachines();
-  const machines = allMachines.slice(offset, offset + limit);
+  // Prioritize machines tagged with category "event" at the top of the list
+  const prioritized = [...allMachines].sort((a, b) => {
+    const aIsEvent = typeof a.category === 'string' && a.category.toLowerCase() === 'event';
+    const bIsEvent = typeof b.category === 'string' && b.category.toLowerCase() === 'event';
+    if (aIsEvent === bIsEvent) return 0;
+    return aIsEvent ? -1 : 1;
+  });
+  const machines = prioritized.slice(offset, offset + limit);
   const enriched = machines.map((machine) => ({ ...machine, distance: null }));
 
   return res.json(
@@ -32,10 +39,10 @@ export const handleListMachines = async (req, res) => {
       {
         data: enriched,
         meta: {
-          total: allMachines.length,
+          total: prioritized.length,
           limit,
           offset,
-          hasMore: offset + limit < allMachines.length
+          hasMore: offset + limit < prioritized.length
         }
       },
       'Machines listing'
