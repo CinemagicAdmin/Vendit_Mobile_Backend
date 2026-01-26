@@ -253,6 +253,94 @@ export const tapDeleteCard = async (customerId, cardId) => {
   }, 'deleteCard');
 };
 
+// KNET charge (Kuwait debit cards)
+// Uses src_kw.knet as source for KNET payment page redirect
+export const tapCreateKnetCharge = async (payload) => {
+  const idempotencyKey = generateIdempotencyKey('knet');
+  const body = {
+    amount: payload.amount,
+    currency: 'KWD', // KNET only supports KWD
+    customer_initiated: true,
+    threeDSecure: false, // KNET doesn't use 3DS
+    save_card: payload.saveCard ?? false, // Enable for KFast
+    reference: { order: payload.orderRef },
+    description: payload.description || 'Vend-IT KNET payment',
+    customer: payload.customerId ? { id: payload.customerId } : {
+      first_name: payload.firstName || 'Vend',
+      email: payload.email || 'customer@vendit.app',
+      phone: payload.phone ? {
+        country_code: '965',
+        number: payload.phone
+      } : undefined
+    },
+    source: { id: 'src_kw.knet' }, // KNET source
+    metadata: { 
+      idempotency_key: idempotencyKey,
+      payment_type: 'knet',
+      kfast_enabled: payload.saveCard ?? false
+    },
+    post: { url: process.env.TAP_WEBHOOK_URL || 'https://vendit.example.com/hooks/tap/post' },
+    redirect: { url: payload.redirectUrl || process.env.TAP_REDIRECT_URL || 'https://vendit.example.com/hooks/tap/redirect' }
+  };
+  
+  return withRetry(async () => {
+    const { data } = await tap.post('/charges', body, {
+      headers: { 'Idempotency-Key': idempotencyKey }
+    });
+    logger.info({
+      chargeId: data.id,
+      status: data.status,
+      amount: payload.amount,
+      transactionUrl: data.transaction?.url,
+      kfastEnabled: payload.saveCard ?? false,
+      idempotencyKey
+    }, 'KNET charge initiated');
+    return data;
+  }, 'createKnetCharge');
+};
+
+// KFast charge (saved KNET cards)
+// Requires customer ID with saved KNET cards from previous KFast enrollment
+export const tapCreateKfastCharge = async (payload) => {
+  if (!payload.customerId) {
+    throw new Error('Customer ID required for KFast payment');
+  }
+  
+  const idempotencyKey = generateIdempotencyKey('kfast');
+  const body = {
+    amount: payload.amount,
+    currency: 'KWD',
+    customer_initiated: true,
+    threeDSecure: false,
+    save_card: false, // Already saved
+    reference: { order: payload.orderRef },
+    description: payload.description || 'Vend-IT KFast payment',
+    customer: { id: payload.customerId },
+    source: { id: 'src_kw.knet' },
+    metadata: { 
+      idempotency_key: idempotencyKey,
+      payment_type: 'kfast'
+    },
+    post: { url: process.env.TAP_WEBHOOK_URL || 'https://vendit.example.com/hooks/tap/post' },
+    redirect: { url: payload.redirectUrl || process.env.TAP_REDIRECT_URL || 'https://vendit.example.com/hooks/tap/redirect' }
+  };
+  
+  return withRetry(async () => {
+    const { data } = await tap.post('/charges', body, {
+      headers: { 'Idempotency-Key': idempotencyKey }
+    });
+    logger.info({
+      chargeId: data.id,
+      status: data.status,
+      amount: payload.amount,
+      customerId: payload.customerId,
+      transactionUrl: data.transaction?.url,
+      idempotencyKey
+    }, 'KFast charge initiated');
+    return data;
+  }, 'createKfastCharge');
+};
+
 // Webhook signature validation
 export const validateTapWebhookSignature = (
   payload: string,
@@ -285,3 +373,4 @@ export const validateTapWebhookSignature = (
     return false;
   }
 };
+

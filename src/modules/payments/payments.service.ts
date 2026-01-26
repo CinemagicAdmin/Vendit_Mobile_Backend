@@ -25,7 +25,9 @@ import {
   tapCreateChargeWithToken,
   tapCreateCustomer,
   tapCreateGPayToken,
-  tapCreateSavedCardToken
+  tapCreateSavedCardToken,
+  tapCreateKnetCharge,
+  tapCreateKfastCharge
 } from './tap.client.js';
 import { sendNotification } from '../notifications/notifications.service.js';
 import { emptyCart } from '../cart/cart.service.js';
@@ -552,5 +554,115 @@ export const getUserLoyaltyConversion = async (userId) => {
       amount
     },
     'Loyalty conversion'
+  );
+};
+
+// KNET Payment (Kuwait debit cards)
+export const makeKnetPayment = async (userId, input) => {
+  const user = await getUser(userId);
+  if (!user) throw new apiError(404, 'User not found');
+  
+  const orderRef = randomUUID();
+  
+  // Create KNET charge (redirects to KNET payment page)
+  const charge = await tapCreateKnetCharge({
+    amount: input.amount,
+    orderRef,
+    customerId: input.customerId || user.tapCustomerId,
+    firstName: user.firstName,
+    email: user.email,
+    phone: user.phoneNumber,
+    saveCard: input.saveCard, // KFast enrollment
+    redirectUrl: input.redirectUrl
+  });
+  
+  // Create pending payment record
+  const payment = await createPayment({
+    userId,
+    machineUId: input.machineId,
+    transactionId: `knet-${randomUUID()}`,
+    paymentMethod: 'KNET',
+    status: 'PENDING',
+    amount: input.amount,
+    chargeId: charge.id,
+    tapCustomerId: input.customerId || user.tapCustomerId,
+    orderReference: orderRef
+  });
+  
+  // Attach products
+  if (input.products?.length) {
+    await attachPaymentProducts({
+      paymentId: payment.id,
+      items: input.products.map((p) => ({
+        productUId: p.productId,
+        quantity: p.quantity
+      }))
+    });
+  }
+  
+  return ok(
+    {
+      payment,
+      chargeId: charge.id,
+      transactionUrl: charge.transaction?.url,
+      status: 'PENDING',
+      kfastEnrolled: input.saveCard ?? false
+    },
+    'KNET payment initiated - redirect to complete'
+  );
+};
+
+// KFast Payment (saved KNET cards)
+export const makeKfastPayment = async (userId, input) => {
+  const user = await getUser(userId);
+  if (!user) throw new apiError(404, 'User not found');
+  
+  const customerId = input.customerId || user.tapCustomerId;
+  if (!customerId) {
+    throw new apiError(400, 'Customer ID required for KFast - enroll via KNET first');
+  }
+  
+  const orderRef = randomUUID();
+  
+  // Create KFast charge (shows saved cards on KNET page)
+  const charge = await tapCreateKfastCharge({
+    amount: input.amount,
+    orderRef,
+    customerId,
+    redirectUrl: input.redirectUrl
+  });
+  
+  // Create pending payment record
+  const payment = await createPayment({
+    userId,
+    machineUId: input.machineId,
+    transactionId: `kfast-${randomUUID()}`,
+    paymentMethod: 'KFAST',
+    status: 'PENDING',
+    amount: input.amount,
+    chargeId: charge.id,
+    tapCustomerId: customerId,
+    orderReference: orderRef
+  });
+  
+  // Attach products
+  if (input.products?.length) {
+    await attachPaymentProducts({
+      paymentId: payment.id,
+      items: input.products.map((p) => ({
+        productUId: p.productId,
+        quantity: p.quantity
+      }))
+    });
+  }
+  
+  return ok(
+    {
+      payment,
+      chargeId: charge.id,
+      transactionUrl: charge.transaction?.url,
+      status: 'PENDING'
+    },
+    'KFast payment initiated - redirect to complete'
   );
 };

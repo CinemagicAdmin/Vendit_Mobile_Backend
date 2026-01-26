@@ -63,3 +63,28 @@ export const gpayPaymentSchema = z.object({
   pointsToRedeem: z.coerce.number().min(0).optional()
   // pointsToRedeem: z.coerce.number().int().positive().optional()
 });
+
+// KNET payment schema
+export const knetPaymentSchema = z.object({
+  amount: z.coerce.number().positive(),
+  machineId: z.string(),
+  products: z.array(
+    z.object({ productId: z.string(), quantity: z.coerce.number().int().positive() })
+  ),
+  customerId: z.string().optional(), // For existing customers
+  saveCard: z.boolean().optional().default(false), // Enable KFast enrollment
+  redirectUrl: z.string().url().optional(),
+  pointsToRedeem: z.coerce.number().min(0).optional()
+});
+
+// KFast payment schema (saved KNET cards)
+export const kfastPaymentSchema = z.object({
+  amount: z.coerce.number().positive(),
+  machineId: z.string(),
+  products: z.array(
+    z.object({ productId: z.string(), quantity: z.coerce.number().int().positive() })
+  ),
+  customerId: z.string(), // Required for KFast
+  redirectUrl: z.string().url().optional(),
+  pointsToRedeem: z.coerce.number().min(0).optional()
+});
