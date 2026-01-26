@@ -14,9 +14,17 @@ export const listActivityLogs = async (params?: {
   const limit = params?.limit || 50;
   const offset = (page - 1) * limit;
 
+  // Join with admins table to get admin name
   let query = supabase
     .from('audit_logs')
-    .select('*', { count: 'exact' })
+    .select(`
+      *,
+      admin:admin_id (
+        id,
+        name,
+        email
+      )
+    `, { count: 'exact' })
     .order('created_at', { ascending: false });
 
   // Filter by admin ID
@@ -63,8 +71,10 @@ export const listActivityLogs = async (params?: {
       parsedDetails = {};
     }
 
-    // Extract admin name from parsed details (handles both admin_name and adminName)
-    const adminName = parsedDetails?.adminName || parsedDetails?.admin_name || 'System';
+    // Get admin name from joined admin table first, then fallback to details
+    const joinedAdmin = log.admin;
+    const adminName = joinedAdmin?.name || parsedDetails?.adminName || parsedDetails?.admin_name || 'System';
+    const adminEmail = joinedAdmin?.email || parsedDetails?.email || null;
 
     // Format details for display - show all relevant information
     let formattedDetails = '';
@@ -109,6 +119,7 @@ export const listActivityLogs = async (params?: {
     return {
       id: log.id,
       admin_name: adminName,
+      admin_email: adminEmail,
       action: log.action?.split('.')[1] || log.action,
       entity: log.resource_type,
       entity_id: log.resource_id,
