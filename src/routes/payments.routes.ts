@@ -13,9 +13,7 @@ import {
   handlePaymentHistory,
   handleWalletHistory,
   handleWalletPayment,
-  handleCreateCard,
-  handleKnetPayment,
-  handleKfastPayment
+  handleCreateCard
 } from '../modules/payments/payments.controller.js';
 import { requireAuth } from '../middleware/auth.js';
 import {
@@ -40,14 +38,11 @@ router.post('/wallet/charge', walletLimiter, handleChargeWallet);
 router.post('/wallet/pay', walletLimiter, handleWalletPayment);
 
 // Payment processing - per-minute rate limit
+// Note: /card/pay now supports both CARD and KNET (with KFAST) via paymentMethod field
 router.post('/card/pay', paymentLimiter, handleCardPayment);
 router.post('/ios/pay', paymentLimiter, handleIosPayment);
 router.post('/gpay/token', paymentLimiter, handleGPayToken);
 router.post('/gpay/pay', paymentLimiter, handleGPayPayment);
-
-// KNET and KFast payments (Kuwait debit)
-router.post('/knet/pay', paymentLimiter, handleKnetPayment);
-router.post('/kfast/pay', paymentLimiter, handleKfastPayment);
 
 // Dispense updates
 router.post('/dispense', dispenseLimiter, handleDispenseUpdate);

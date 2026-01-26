@@ -203,18 +203,30 @@ const notifyPaymentSuccess = async (params) => {
 export const makeCardPayment = async (userId, input) => {
   const user = await getUser(userId);
   if (!user) throw new apiError(404, 'User not found');
+  
+  const isKnet = input.paymentMethod === 'KNET';
+  
+  // Validate: cardId required for CARD payments
+  if (!isKnet && !input.cardId) {
+    throw new apiError(400, 'cardId is required for card payments');
+  }
+  
   const redemption = await calculateRedemption(
     userId,
     input.pointsToRedeem,
     input.amount,
     input.products
   );
+  
   let tapCustomerId = input.customerId ?? user.tapCustomerId;
   let transactionId = randomUUID();
-  let status = 'PAID';
+  let status = isKnet ? 'PENDING' : 'PAID'; // KNET requires redirect
   let chargeId;
-  const paymentMethod = redemption.payableAmount > 0 ? 'CARD' : 'LOYALTY';
+  let transactionUrl;
+  const paymentMethod = isKnet ? 'KNET' : (redemption.payableAmount > 0 ? 'CARD' : 'LOYALTY');
+  
   if (redemption.payableAmount > 0) {
+    // Ensure customer ID exists for Tap
     if (!tapCustomerId) {
       const customer = await tapCreateCustomer({
         firstName: user.firstName ?? 'Vend',
@@ -226,21 +238,42 @@ export const makeCardPayment = async (userId, input) => {
       tapCustomerId = customer.id;
       await updateUserTapId(userId, tapCustomerId);
     }
-    const token = await tapCreateSavedCardToken({
-      cardId: input.cardId,
-      customerId: tapCustomerId
-    });
-    const charge = await tapCreateCharge({
-      amount: redemption.payableAmount,
-      currency: 'KWD',
-      customerId: tapCustomerId,
-      sourceId: token.id,
-      orderRef: randomUUID()
-    });
-    transactionId = charge.transaction?.authorization_id ?? transactionId;
-    status = charge.status;
-    chargeId = charge.id;
+    
+    if (isKnet) {
+      // KNET payment (with KFAST if customer has saved cards)
+      const charge = await tapCreateKnetCharge({
+        amount: redemption.payableAmount,
+        orderRef: randomUUID(),
+        customerId: tapCustomerId, // Passing customer.id enables KFAST
+        firstName: user.firstName,
+        email: user.email,
+        phone: user.phoneNumber,
+        saveCard: input.saveCard, // Enroll in KFAST
+        redirectUrl: input.redirectUrl
+      });
+      transactionId = charge.transaction?.authorization_id ?? transactionId;
+      status = charge.status || 'PENDING';
+      chargeId = charge.id;
+      transactionUrl = charge.transaction?.url;
+    } else {
+      // Regular card payment
+      const token = await tapCreateSavedCardToken({
+        cardId: input.cardId,
+        customerId: tapCustomerId
+      });
+      const charge = await tapCreateCharge({
+        amount: redemption.payableAmount,
+        currency: 'KWD',
+        customerId: tapCustomerId,
+        sourceId: token.id,
+        orderRef: randomUUID()
+      });
+      transactionId = charge.transaction?.authorization_id ?? transactionId;
+      status = charge.status;
+      chargeId = charge.id;
+    }
   }
+  
   const payment = await createPayment({
     userId,
     machineUId: input.machineId,
@@ -251,36 +284,55 @@ export const makeCardPayment = async (userId, input) => {
     chargeId,
     tapCustomerId
   });
+  
   await attachPaymentProducts({
     paymentId: payment.id,
     items: input.products.map((p) => ({ productUId: p.productId, quantity: p.quantity }))
   });
-  const points = await awardPurchasePoints(
-    userId,
-    payment.id,
-    input.products,
-    redemption.payableAmount
-  );
-  if (points > 0) {
-    await setPaymentEarnedPoints(payment.id, points);
+  
+  // For KNET, points/notifications happen after webhook confirms payment
+  if (!isKnet || status === 'CAPTURED') {
+    const points = await awardPurchasePoints(
+      userId,
+      payment.id,
+      input.products,
+      redemption.payableAmount
+    );
+    if (points > 0) {
+      await setPaymentEarnedPoints(payment.id, points);
+    }
+    await applyRedemption(userId, payment.id, redemption);
+    await emptyCart(userId);
+    await notifyPaymentSuccess({
+      userId,
+      machineId: input.machineId,
+      amount: redemption.payableAmount,
+      method: payment.payment_method ?? paymentMethod,
+      paymentId: payment.id
+    });
+    
+    return ok(
+      {
+        payment,
+        points,
+        redeemedPoints: redemption.pointsRedeemed,
+        redeemedAmount: redemption.redeemValue
+      },
+      'Payment successful'
+    );
   }
-  await applyRedemption(userId, payment.id, redemption);
-  await emptyCart(userId);
-  await notifyPaymentSuccess({
-    userId,
-    machineId: input.machineId,
-    amount: redemption.payableAmount,
-    method: payment.payment_method ?? 'CARD',
-    paymentId: payment.id
-  });
+  
+  // KNET pending - return transaction URL for redirect
   return ok(
     {
       payment,
-      points,
-      redeemedPoints: redemption.pointsRedeemed,
-      redeemedAmount: redemption.redeemValue
+      chargeId,
+      transactionUrl,
+      status: 'PENDING',
+      kfastEnabled: !!tapCustomerId, // KFAST available if customer ID exists
+      message: 'Redirect user to transactionUrl to complete KNET payment'
     },
-    'Payment successful'
+    'KNET payment initiated - redirect to complete'
   );
 };
 export const saveIosPayment = async (userId, input) => {

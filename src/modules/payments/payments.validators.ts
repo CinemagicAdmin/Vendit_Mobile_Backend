@@ -17,14 +17,17 @@ export const walletChargeSchema = z.object({
     .optional()
 });
 export const cardPaymentSchema = z.object({
-  cardId: z.string().min(1),
-  customerId: z.string().optional(),
+  cardId: z.string().optional(), // Required for CARD, not needed for KNET
+  customerId: z.string().optional(), // Tap customer ID (enables KFAST for KNET)
   amount: z.coerce.number().positive(),
   machineId: z.string(),
   products: z.array(
     z.object({ productId: z.string(), quantity: z.coerce.number().int().positive() })
   ),
-  pointsToRedeem: z.coerce.number().min(0).optional()
+  pointsToRedeem: z.coerce.number().min(0).optional(),
+  paymentMethod: z.enum(['CARD', 'KNET']).optional().default('CARD'), // KNET enables KFast
+  saveCard: z.boolean().optional().default(false), // For KNET: enroll in KFAST
+  redirectUrl: z.string().url().optional() // For KNET: redirect after payment
 });
 export const iosPaymentSchema = z.object({
   amount: z.coerce.number().positive(),

@@ -6,9 +6,7 @@ import {
   gpayTokenSchema,
   iosPaymentSchema,
   walletChargeSchema,
-  walletPaymentSchema,
-  knetPaymentSchema,
-  kfastPaymentSchema
+  walletPaymentSchema
 } from './payments.validators.js';
 import { createCard, deleteCard, listCards } from './cards.service.js';
 import { chargeWallet, payWithWallet } from './wallet.service.js';
@@ -21,8 +19,6 @@ import {
   getWalletHistory,
   makeCardPayment,
   makeGPayPayment,
-  makeKnetPayment,
-  makeKfastPayment,
   saveIosPayment,
   updateDispensedProducts
 } from './payments.service.js';
@@ -92,31 +88,6 @@ export const handleGPayPayment = async (req, res) => {
     amount: payload.amount,
     machineId: payload.machineId,
     products: payload.products,
-    pointsToRedeem: payload.pointsToRedeem
-  });
-  return res.json(response);
-};
-export const handleKnetPayment = async (req, res) => {
-  const payload = knetPaymentSchema.parse(req.body);
-  const response = await makeKnetPayment(req.user.id, {
-    amount: payload.amount,
-    machineId: payload.machineId,
-    products: payload.products,
-    customerId: payload.customerId,
-    saveCard: payload.saveCard, // Enable KFast enrollment
-    redirectUrl: payload.redirectUrl,
-    pointsToRedeem: payload.pointsToRedeem
-  });
-  return res.json(response);
-};
-export const handleKfastPayment = async (req, res) => {
-  const payload = kfastPaymentSchema.parse(req.body);
-  const response = await makeKfastPayment(req.user.id, {
-    amount: payload.amount,
-    machineId: payload.machineId,
-    products: payload.products,
-    customerId: payload.customerId,
-    redirectUrl: payload.redirectUrl,
     pointsToRedeem: payload.pointsToRedeem
   });
   return res.json(response);
