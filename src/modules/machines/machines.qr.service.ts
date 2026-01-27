@@ -10,6 +10,8 @@ import {
   updatePaymentStatus
 } from '../payments/payments.repository.js';
 import { updateDispensedProducts } from '../payments/payments.service.js';
+import { saveKnetToken } from '../payments/knet-tokens.repository.js';
+import { logger } from '../../config/logger.js';
 const QR_BUCKET = 'machines';
 const getQrUrl = (path) => {
   const base = process.env.CDN_BASE_URL ?? '';
@@ -111,5 +113,41 @@ export const handleTapWebhook = async (headers, body) => {
     return ok(null, 'Tap webhook stored');
   }
   await updatePaymentStatus(payment.id, status);
+  
+  // Extract and save KNET token if this was a successful KNET payment with save_card
+  // Token is returned in the charge response when save_card: true
+  if (status === 'CAPTURED' || status === 'AUTHORIZED') {
+    try {
+      const chargeData = payload.data?.object ?? payload;
+      const saveCard = chargeData.save_card ?? false;
+      const source = chargeData.source;
+      const customer = chargeData.customer;
+      
+      // Check if this was a KNET payment with save_card enabled
+      // and if a token was returned (source.id starts with 'tok_')
+      if (saveCard && source?.id && source.id.startsWith('tok_') && customer?.id) {
+        logger.info({
+          userId: payment.user_id,
+          chargeId,
+          tokenId: source.id,
+          customerId: customer.id
+        }, 'Extracting KNET token from webhook');
+        
+        await saveKnetToken({
+          userId: payment.user_id,
+          tapCustomerId: customer.id,
+          tokenId: source.id,
+          lastFour: source.last_four ?? source.object?.last_four,
+          brand: source.brand ?? source.object?.brand
+        });
+        
+        logger.info({ userId: payment.user_id, tokenId: source.id }, 'KNET token saved from webhook');
+      }
+    } catch (error) {
+      // Log error but don't fail the webhook
+      logger.error({ error, chargeId, userId: payment.user_id }, 'Failed to save KNET token from webhook');
+    }
+  }
+  
   return ok(null, 'Tap webhook processed');
 };

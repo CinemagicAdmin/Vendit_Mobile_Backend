@@ -18,6 +18,7 @@ export const walletChargeSchema = z.object({
 });
 export const cardPaymentSchema = z.object({
   cardId: z.string().optional(), // Required for CARD, not needed for KNET
+  tokenId: z.string().optional(), // For KNET repeat payments with saved tokens (tok_xxx)
   customerId: z.string().optional(), // Tap customer ID (enables KFAST for KNET)
   amount: z.coerce.number().positive(),
   machineId: z.string(),

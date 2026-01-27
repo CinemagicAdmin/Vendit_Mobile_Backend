@@ -240,21 +240,37 @@ export const makeCardPayment = async (userId, input) => {
     }
     
     if (isKnet) {
-      // KNET payment (with KFAST if customer has saved cards)
-      const charge = await tapCreateKnetCharge({
-        amount: redemption.payableAmount,
-        orderRef: randomUUID(),
-        customerId: tapCustomerId, // Passing customer.id enables KFAST
-        firstName: user.firstName,
-        email: user.email,
-        phone: user.phoneNumber,
-        saveCard: input.saveCard, // Enroll in KFAST
-        redirectUrl: input.redirectUrl
-      });
-      transactionId = charge.transaction?.authorization_id ?? transactionId;
-      status = charge.status || 'PENDING';
-      chargeId = charge.id;
-      transactionUrl = charge.transaction?.url;
+      // KNET payment - check if using saved token (repeat) or first-time
+      if (input.tokenId) {
+        // Repeat KNET payment with saved token (KFAST)
+        const charge = await tapCreateKfastCharge({
+          amount: redemption.payableAmount,
+          orderRef: randomUUID(),
+          customerId: tapCustomerId,
+          tokenId: input.tokenId, // Use saved token
+          redirectUrl: input.redirectUrl
+        });
+        transactionId = charge.transaction?.authorization_id ?? transactionId;
+        status = charge.status || 'PENDING';
+        chargeId = charge.id;
+        transactionUrl = charge.transaction?.url;
+      } else {
+        // First-time KNET payment (with optional KFAST enrollment)
+        const charge = await tapCreateKnetCharge({
+          amount: redemption.payableAmount,
+          orderRef: randomUUID(),
+          customerId: tapCustomerId, // Passing customer.id enables KFAST
+          firstName: user.firstName,
+          email: user.email,
+          phone: user.phoneNumber,
+          saveCard: input.saveCard, // Enroll in KFAST
+          redirectUrl: input.redirectUrl
+        });
+        transactionId = charge.transaction?.authorization_id ?? transactionId;
+        status = charge.status || 'PENDING';
+        chargeId = charge.id;
+        transactionUrl = charge.transaction?.url;
+      }
     } else {
       // Regular card payment
       const token = await tapCreateSavedCardToken({

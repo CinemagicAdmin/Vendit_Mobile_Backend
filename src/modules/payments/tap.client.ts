@@ -301,12 +301,17 @@ export const tapCreateKnetCharge = async (payload) => {
 
 // KFast charge (saved KNET cards)
 // Requires customer ID with saved KNET cards from previous KFast enrollment
+// If tokenId is provided, uses that specific saved token; otherwise lets Tap show all saved cards
 export const tapCreateKfastCharge = async (payload) => {
   if (!payload.customerId) {
     throw new Error('Customer ID required for KFast payment');
   }
   
   const idempotencyKey = generateIdempotencyKey('kfast');
+  
+  // Use tokenId if provided, otherwise use src_kw.knet to show all saved cards
+  const sourceId = payload.tokenId || 'src_kw.knet';
+  
   const body = {
     amount: payload.amount,
     currency: 'KWD',
@@ -316,10 +321,11 @@ export const tapCreateKfastCharge = async (payload) => {
     reference: { order: payload.orderRef },
     description: payload.description || 'Vend-IT KFast payment',
     customer: { id: payload.customerId },
-    source: { id: 'src_kw.knet' },
+    source: { id: sourceId },
     metadata: { 
       idempotency_key: idempotencyKey,
-      payment_type: 'kfast'
+      payment_type: 'kfast',
+      using_saved_token: !!payload.tokenId
     },
     post: { url: process.env.TAP_WEBHOOK_URL || 'https://vendit.example.com/hooks/tap/post' },
     redirect: { url: payload.redirectUrl || process.env.TAP_REDIRECT_URL || 'https://vendit.example.com/hooks/tap/redirect' }
@@ -334,6 +340,7 @@ export const tapCreateKfastCharge = async (payload) => {
       status: data.status,
       amount: payload.amount,
       customerId: payload.customerId,
+      tokenId: payload.tokenId,
       transactionUrl: data.transaction?.url,
       idempotencyKey
     }, 'KFast charge initiated');
