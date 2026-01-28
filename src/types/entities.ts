@@ -383,7 +383,11 @@ export type AuditAction =
   | 'admin.action'
   | 'machine.synced'
   | 'dispense.triggered'
-  | 'dispense.completed';
+  | 'dispense.completed'
+  | 'coupon.create'
+  | 'coupon.update'
+  | 'coupon.delete'
+  | 'coupon.deactivate';
 
 // ============================================================================
 // API Response Types

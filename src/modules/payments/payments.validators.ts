@@ -28,7 +28,8 @@ export const cardPaymentSchema = z.object({
   pointsToRedeem: z.coerce.number().min(0).optional(),
   paymentMethod: z.enum(['CARD', 'KNET']).optional().default('CARD'), // KNET enables KFast
   saveCard: z.boolean().optional().default(false), // For KNET: enroll in KFAST
-  redirectUrl: z.string().url().optional() // For KNET: redirect after payment
+  redirectUrl: z.string().url().optional(), // For KNET: redirect after payment
+  couponCode: z.string().optional() // Discount coupon code
 });
 export const iosPaymentSchema = z.object({
   amount: z.coerce.number().positive(),

@@ -33,6 +33,8 @@ import { sendNotification } from '../notifications/notifications.service.js';
 import { emptyCart } from '../cart/cart.service.js';
 import { getMachineById } from '../machines/machines.repository.js';
 import { getProductsByIds } from '../products/products.repository.js';
+import { validateAndCalculateCoupon, applyCoupon } from '../coupons/coupons.service.js';
+import { getCouponById } from '../coupons/coupons.repository.js';
 const config = getConfig();
 export const LOYALTY_RATE = config.loyaltyBaseRate ?? 10;
 const HEALTHY_MULTIPLIER = config.loyaltyHealthyMultiplier ?? 1.5;
@@ -211,10 +213,31 @@ export const makeCardPayment = async (userId, input) => {
     throw new apiError(400, 'cardId is required for card payments');
   }
   
+  // ✅ NEW: Validate and apply coupon BEFORE loyalty redemption
+  let couponDiscount = null;
+  let adjustedAmount = input.amount;
+  const originalAmount = input.amount;
+  
+  if (input.couponCode) {
+    couponDiscount = await validateAndCalculateCoupon(
+      userId,
+      input.couponCode,
+      input.amount,
+      input.products
+    );
+    
+    if (!couponDiscount.valid) {
+      throw new apiError(400, couponDiscount.error || 'Invalid coupon');
+    }
+    
+    adjustedAmount = couponDiscount.finalAmount;  // Cart total AFTER coupon
+  }
+  
+  // Calculate loyalty redemption on discounted amount
   const redemption = await calculateRedemption(
     userId,
     input.pointsToRedeem,
-    input.amount,
+    adjustedAmount,  // Use amount AFTER coupon discount
     input.products
   );
   
@@ -297,6 +320,9 @@ export const makeCardPayment = async (userId, input) => {
     paymentMethod,
     status,
     amount: redemption.payableAmount,
+    originalAmount: couponDiscount ? originalAmount : null,  // ✅ NEW: Store original amount
+    discountAmount: couponDiscount?.discountAmount || 0,  // ✅ NEW: Store discount
+    couponId: couponDiscount?.couponId || null,  // ✅ NEW: Store coupon ID
     chargeId,
     tapCustomerId
   });
@@ -318,6 +344,21 @@ export const makeCardPayment = async (userId, input) => {
       await setPaymentEarnedPoints(payment.id, points);
     }
     await applyRedemption(userId, payment.id, redemption);
+    
+    // ✅ NEW: Record coupon usage if applied successfully
+    if (couponDiscount?.valid) {
+      const couponDetails = await getCouponById(couponDiscount.couponId);
+      await applyCoupon({
+        couponId: couponDiscount.couponId,
+        userId,
+        paymentId: payment.id,
+        discountApplied: couponDiscount.discountAmount,
+        originalAmount,
+        finalAmount: adjustedAmount,
+        maxTotalUses: couponDetails?.max_total_uses || null
+      });
+    }
+    
     await emptyCart(userId);
     await notifyPaymentSuccess({
       userId,
@@ -332,7 +373,9 @@ export const makeCardPayment = async (userId, input) => {
         payment,
         points,
         redeemedPoints: redemption.pointsRedeemed,
-        redeemedAmount: redemption.redeemValue
+        redeemedAmount: redemption.redeemValue,
+        couponApplied: couponDiscount?.valid || false,  // ✅ NEW
+        couponDiscount: couponDiscount?.discountAmount || 0  // ✅ NEW
       },
       'Payment successful'
     );
@@ -346,6 +389,8 @@ export const makeCardPayment = async (userId, input) => {
       transactionUrl,
       status: 'PENDING',
       kfastEnabled: !!tapCustomerId, // KFAST available if customer ID exists
+      couponApplied: couponDiscount?.valid || false,  // ✅ NEW
+      couponDiscount: couponDiscount?.discountAmount || 0,  // ✅ NEW
       message: 'Redirect user to transactionUrl to complete KNET payment'
     },
     'KNET payment initiated - redirect to complete'
