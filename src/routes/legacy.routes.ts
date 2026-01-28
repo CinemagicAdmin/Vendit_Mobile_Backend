@@ -48,6 +48,10 @@ import {
   handleWalletPayment
 } from '../modules/payments/payments.controller.js';
 import { handleLatestCampaign } from '../modules/campaigns/campaigns.controller.js';
+import {
+  validateCouponApi,
+  listAvailableCouponsApi
+} from '../modules/coupons/user-coupons.controller.js';
 import { requireAuth } from '../middleware/auth.js';
 import { dispenseLimiter } from '../middleware/rate-limiters.js';
 import { getMachineDetail } from '../modules/machines/machines.service.js';
@@ -114,6 +118,11 @@ router.get('/users/search/product', requireAuth, normalizeMachineIdQuery, (req, 
   handleSearchProducts(req, res)
 );
 router.post('/users/product/image', requireAuth, legacyUpload.none(), handleLegacyProductImage);
+
+// Coupons (legacy-style paths for mobile app)
+router.post('/users/coupon/validate', requireAuth, validateCouponApi);
+router.get('/users/coupon/available', requireAuth, listAvailableCouponsApi);
+
 // Payments
 router.post('/payments/create/cards', requireAuth, handleCreateCard);
 router.get('/payments/card/list', requireAuth, handleListCards);
