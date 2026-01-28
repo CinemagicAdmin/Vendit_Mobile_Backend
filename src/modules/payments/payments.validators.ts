@@ -39,7 +39,8 @@ export const iosPaymentSchema = z.object({
   products: z.array(
     z.object({ productId: z.string(), quantity: z.coerce.number().int().positive() })
   ),
-  pointsToRedeem: z.coerce.number().min(0).optional()
+  pointsToRedeem: z.coerce.number().min(0).optional(),
+  couponCode: z.string().optional() // Discount coupon code
 });
 export const walletPaymentSchema = z.object({
   amount: z.coerce.number().min(0),
@@ -47,7 +48,8 @@ export const walletPaymentSchema = z.object({
   products: z.array(
     z.object({ productId: z.string(), quantity: z.coerce.number().int().positive() })
   ),
-  pointsToRedeem: z.coerce.number().min(0).optional()
+  pointsToRedeem: z.coerce.number().min(0).optional(),
+  couponCode: z.string().optional() // Discount coupon code
 });
 export const dispenseSchema = z.object({
   paymentId: z.string(),
@@ -65,8 +67,8 @@ export const gpayPaymentSchema = z.object({
   products: z.array(
     z.object({ productId: z.string(), quantity: z.coerce.number().int().positive() })
   ),
-  pointsToRedeem: z.coerce.number().min(0).optional()
-  // pointsToRedeem: z.coerce.number().int().positive().optional()
+  pointsToRedeem: z.coerce.number().min(0).optional(),
+  couponCode: z.string().optional() // Discount coupon code
 });
 
 // KNET payment schema
@@ -79,7 +81,8 @@ export const knetPaymentSchema = z.object({
   customerId: z.string().optional(), // For existing customers
   saveCard: z.boolean().optional().default(false), // Enable KFast enrollment
   redirectUrl: z.string().url().optional(),
-  pointsToRedeem: z.coerce.number().min(0).optional()
+  pointsToRedeem: z.coerce.number().min(0).optional(),
+  couponCode: z.string().optional() // Discount coupon code
 });
 
 // KFast payment schema (saved KNET cards)
@@ -91,5 +94,6 @@ export const kfastPaymentSchema = z.object({
   ),
   customerId: z.string(), // Required for KFast
   redirectUrl: z.string().url().optional(),
-  pointsToRedeem: z.coerce.number().min(0).optional()
+  pointsToRedeem: z.coerce.number().min(0).optional(),
+  couponCode: z.string().optional() // Discount coupon code
 });
