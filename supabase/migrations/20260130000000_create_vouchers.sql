@@ -33,9 +33,9 @@ CREATE TABLE voucher_redemptions (
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   wallet_transaction_id UUID REFERENCES wallet_transactions(id) ON DELETE SET NULL,
   amount_credited DECIMAL(10,3) NOT NULL CHECK (amount_credited > 0),
-  redeemed_at TIMESTAMPTZ DEFAULT NOW(),
-  -- Prevent duplicate redemptions per user per voucher
-  CONSTRAINT unique_user_voucher UNIQUE(voucher_id, user_id)
+  redeemed_at TIMESTAMPTZ DEFAULT NOW()
+  -- NOTE: No unique constraint - max_uses_per_user is enforced in application logic
+  -- via getUserRedemptionCount check before creating redemption
 );
 
 -- Indexes for voucher redemptions

@@ -153,21 +153,13 @@ export const redeemVoucher = async (code: string, userId: string) => {
       }
     });
 
-    // 4. Create redemption record (with unique constraint to prevent duplicates)
-    try {
-      await createRedemption({
-        voucherId: voucher.id,
-        userId,
-        walletTransactionId: null, // Transaction ID not available
-        amountCredited: voucher.amount
-      });
-    } catch (error) {
-      // If unique constraint violation, user already redeemed
-      if (error.code === '23505') {
-        throw new apiError(400, 'You have already redeemed this voucher');
-      }
-      throw error;
-    }
+    // 4. Create redemption record
+    await createRedemption({
+      voucherId: voucher.id,
+      userId,
+      walletTransactionId: null, // Transaction ID not available
+      amountCredited: voucher.amount
+    });
 
     // 5. Send notification
     await sendNotification({
