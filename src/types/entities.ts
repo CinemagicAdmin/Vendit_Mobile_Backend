@@ -387,7 +387,12 @@ export type AuditAction =
   | 'coupon.create'
   | 'coupon.update'
   | 'coupon.delete'
-  | 'coupon.deactivate';
+  | 'coupon.deactivate'
+  | 'voucher.create'
+  | 'voucher.update'
+  | 'voucher.delete'
+  | 'voucher.toggle'
+  | 'voucher.redeem';
 
 // ============================================================================
 // API Response Types

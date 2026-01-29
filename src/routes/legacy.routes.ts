@@ -52,6 +52,10 @@ import {
   validateCouponApi,
   listAvailableCouponsApi
 } from '../modules/coupons/user-coupons.controller.js';
+import {
+  redeemVoucherApi,
+  getUserRedemptionHistory
+} from '../modules/vouchers/user-vouchers.controller.js';
 import { requireAuth } from '../middleware/auth.js';
 import { dispenseLimiter } from '../middleware/rate-limiters.js';
 import { getMachineDetail } from '../modules/machines/machines.service.js';
@@ -122,6 +126,10 @@ router.post('/users/product/image', requireAuth, legacyUpload.none(), handleLega
 // Coupons (legacy-style paths for mobile app)
 router.post('/users/coupon/validate', requireAuth, validateCouponApi);
 router.get('/users/coupon/available', requireAuth, listAvailableCouponsApi);
+
+// Vouchers (legacy-style paths for mobile app)
+router.post('/users/voucher/redeem', requireAuth, redeemVoucherApi);
+router.get('/users/voucher/history', requireAuth, getUserRedemptionHistory);
 
 // Payments
 router.post('/payments/create/cards', requireAuth, handleCreateCard);
