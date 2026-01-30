@@ -56,6 +56,14 @@ import {
   redeemVoucherApi,
   getUserRedemptionHistory
 } from '../modules/vouchers/user-vouchers.controller.js';
+import {
+  getActiveChallengesApi,
+  getMyBadgesApi,
+  registerForChallengeApi,
+  submitStepsApi,
+  getProgressApi,
+  getLeaderboardApi
+} from '../modules/step-challenges/user-step-challenges.controller.js';
 import { requireAuth } from '../middleware/auth.js';
 import { dispenseLimiter } from '../middleware/rate-limiters.js';
 import { getMachineDetail } from '../modules/machines/machines.service.js';
@@ -130,6 +138,15 @@ router.get('/users/coupon/available', requireAuth, listAvailableCouponsApi);
 // Vouchers (legacy-style paths for mobile app)
 router.post('/users/voucher/redeem', requireAuth, redeemVoucherApi);
 router.get('/users/voucher/history', requireAuth, getUserRedemptionHistory);
+
+// Step Challenges (legacy-style paths for mobile app)
+router.get('/users/step-challenges/active', requireAuth, getActiveChallengesApi);
+router.get('/users/step-challenges/my-badges', requireAuth, getMyBadgesApi);
+router.post('/users/step-challenges/:id/register', requireAuth, registerForChallengeApi);
+router.post('/users/step-challenges/:id/submit', requireAuth, submitStepsApi);
+router.get('/users/step-challenges/:id/progress', requireAuth, getProgressApi);
+router.get('/users/step-challenges/:id/leaderboard', requireAuth, getLeaderboardApi);
+
 
 // Payments
 router.post('/payments/create/cards', requireAuth, handleCreateCard);

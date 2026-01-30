@@ -392,7 +392,11 @@ export type AuditAction =
   | 'voucher.update'
   | 'voucher.delete'
   | 'voucher.toggle'
-  | 'voucher.redeem';
+  | 'voucher.redeem'
+  | 'step_challenge.create'
+  | 'step_challenge.update'
+  | 'step_challenge.delete'
+  | 'step_challenge.toggle';
 
 // ============================================================================
 // API Response Types
