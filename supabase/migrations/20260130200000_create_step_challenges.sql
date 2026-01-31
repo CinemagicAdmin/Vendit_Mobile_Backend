@@ -109,6 +109,7 @@ RETURNS TABLE(
   rank BIGINT,
   user_id UUID,
   user_name TEXT,
+  user_profile TEXT,
   total_steps INT,
   last_update TIMESTAMPTZ
 ) AS $$
@@ -118,6 +119,7 @@ BEGIN
     RANK() OVER (ORDER BY p.total_steps DESC) as rank,
     p.user_id,
     COALESCE(u.first_name || ' ' || u.last_name, 'Unknown') as user_name,
+    u.user_profile,
     p.total_steps,
     p.last_step_update as last_update
   FROM step_challenge_participants p
