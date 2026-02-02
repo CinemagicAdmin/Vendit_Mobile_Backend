@@ -9,7 +9,10 @@ import {
   deleteChallengeApi,
   toggleChallengeApi,
   getLeaderboardApi,
-  getParticipantsApi
+  getParticipantsApi,
+  badgeIconUploadMiddleware,
+  uploadBadgeIconApi,
+  finalizeChallengeApi
 } from '../modules/step-challenges/admin-step-challenges.controller.js';
 
 const router = Router();
@@ -20,6 +23,9 @@ router.use(adminLimiter);
 
 // Create step challenge
 router.post('/step-challenges', createChallengeApi);
+
+// Upload badge icon
+router.post('/step-challenges/upload-badge-icon', badgeIconUploadMiddleware, uploadBadgeIconApi);
 
 // List all challenges
 router.get('/step-challenges', listChallengesApi);
@@ -41,5 +47,8 @@ router.get('/step-challenges/:id/leaderboard', getLeaderboardApi);
 
 // Get challenge participants
 router.get('/step-challenges/:id/participants', getParticipantsApi);
+
+// Finalize challenge
+router.patch('/step-challenges/:id/finalize', finalizeChallengeApi);
 
 export default router;

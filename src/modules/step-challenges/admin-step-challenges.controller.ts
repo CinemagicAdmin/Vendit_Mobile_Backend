@@ -1,4 +1,8 @@
 import type { Request, Response, NextFunction } from 'express';
+import multer from 'multer';
+import path from 'node:path';
+import { nanoid } from 'nanoid';
+import { supabase } from '../../libs/supabase.js';
 import { auditLog } from '../../utils/audit.js';
 import {
   stepChallengeCreateSchema,
@@ -17,6 +21,49 @@ import {
   getParticipants,
   finalizeStepChallenge
 } from './step-challenges.service.js';
+
+const upload = multer({ storage: multer.memoryStorage() });
+export const badgeIconUploadMiddleware = upload.single('file');
+
+/**
+ * POST /admin/step-challenges/upload-badge-icon - Upload badge icon to storage
+ */
+export const uploadBadgeIconApi = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const file = req.file;
+    if (!file) {
+      res.status(400).json({ status: 400, message: 'No file uploaded' });
+      return;
+    }
+
+    const ext = path.extname(file.originalname) || '.png';
+    const objectKey = `badges/badge-${nanoid(8)}${ext}`;
+    
+    // Using 'admin' bucket as established patterns in the codebase
+    const { error } = await supabase.storage
+      .from('admin')
+      .upload(objectKey, file.buffer, {
+        contentType: file.mimetype,
+        upsert: true
+      });
+
+    if (error) {
+      res.status(400).json({ status: 400, message: 'File upload failed', details: error.message });
+      return;
+    }
+
+    const supabaseUrl = process.env.SUPABASE_URL ?? '';
+    const publicUrl = `${supabaseUrl}/storage/v1/object/public/admin/${objectKey}`;
+
+    res.json({ 
+      status: 200, 
+      message: 'File uploaded successfully', 
+      data: { url: publicUrl } 
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
 /**
  * POST /admin/step-challenges - Create new step challenge
@@ -224,7 +271,7 @@ export const finalizeChallengeApi = async (req: Request, res: Response, next: Ne
 
     // Audit log
     await auditLog({
-      action: 'step_challenge.update', // Re-using update or could add .finalize
+      action: 'step_challenge.finalize',
       adminId,
       resourceType: 'step_challenge',
       resourceId: id,

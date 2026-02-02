@@ -221,29 +221,30 @@ export const submitUserSteps = async (
   const newTotal = participant.total_steps + data.steps;
   await updateParticipantSteps(participant.id, newTotal);
 
-  // Check for new badges
+  // Check for new badges (only thresholds newly reached in this submission)
   const newBadges: { name: string; icon: string; steps: number }[] = [];
   const thresholds = (challenge.badge_thresholds || []) as BadgeThreshold[];
-
-  for (const threshold of thresholds) {
-    // Check if reached threshold and doesn't have badge yet
-    if (newTotal >= threshold.steps) {
-      const hasBadge = await hasUserBadge(userId, challengeId, threshold.badge_name);
-      if (!hasBadge) {
-        await createBadge({
-          userId,
-          challengeId,
-          badgeName: threshold.badge_name,
-          badgeType: 'steps',
-          badgeIcon: threshold.badge_icon,
-          stepsAchieved: newTotal
-        });
-        newBadges.push({
-          name: threshold.badge_name,
-          icon: threshold.badge_icon,
-          steps: threshold.steps
-        });
-      }
+  
+  const newlyReachedThresholds = thresholds.filter(
+    t => newTotal >= t.steps && participant.total_steps < t.steps
+  );
+  
+  for (const threshold of newlyReachedThresholds) {
+    const hasBadge = await hasUserBadge(userId, challengeId, threshold.badge_name);
+    if (!hasBadge) {
+      await createBadge({
+        userId,
+        challengeId,
+        badgeName: threshold.badge_name,
+        badgeType: 'steps',
+        badgeIcon: threshold.badge_icon,
+        stepsAchieved: newTotal
+      });
+      newBadges.push({
+        name: threshold.badge_name,
+        icon: threshold.badge_icon,
+        steps: threshold.steps
+      });
     }
   }
 
@@ -308,6 +309,12 @@ export const getUserBadgesList = async (userId: string) => {
  * Finalize challenge, mark as inactive, and award ranking badges
  */
 export const finalizeStepChallenge = async (challengeId: string) => {
+  // 0. Check if already inactive
+  const current = await getChallengeById(challengeId);
+  if (!current.is_active) {
+    throw new apiError(400, 'Challenge is already inactive or finalized');
+  }
+
   // 1. Mark challenge as inactive
   const challenge = await updateChallenge(challengeId, { isActive: false });
   

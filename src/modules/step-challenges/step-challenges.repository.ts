@@ -342,7 +342,8 @@ export const getChallengeParticipants = async (
         id,
         first_name,
         last_name,
-        phone_number
+        phone_number,
+        user_profile
       )
     `, { count: 'exact' })
     .eq('challenge_id', challengeId)

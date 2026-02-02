@@ -396,7 +396,8 @@ export type AuditAction =
   | 'step_challenge.create'
   | 'step_challenge.update'
   | 'step_challenge.delete'
-  | 'step_challenge.toggle';
+  | 'step_challenge.toggle'
+  | 'step_challenge.finalize';
 
 // ============================================================================
 // API Response Types

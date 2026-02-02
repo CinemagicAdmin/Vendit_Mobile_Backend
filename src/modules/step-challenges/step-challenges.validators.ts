@@ -6,7 +6,7 @@ import { z } from 'zod';
 export const badgeThresholdSchema = z.object({
   steps: z.number().int().positive('Steps must be positive'),
   badge_name: z.string().min(1, 'Badge name required').max(50),
-  badge_icon: z.string().max(50).optional().default('🏅')
+  badge_icon: z.string().max(512).optional().default('🏅')
 });
 
 /**
