@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import {
   stepSubmissionSchema,
-  paginationQuerySchema
+  // paginationQuerySchema
 } from './step-challenges.validators.js';
 import {
   getActiveChallengesForUser,
