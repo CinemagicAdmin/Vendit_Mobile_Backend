@@ -82,9 +82,12 @@ export const getChallengeById = async (id: string) => {
     .from('step_challenges')
     .select('*')
     .eq('id', id)
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
+  if (!data) {
+    throw { status: 404, message: 'Challenge not found' };
+  }
   return data;
 };
 

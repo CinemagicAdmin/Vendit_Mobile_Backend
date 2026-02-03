@@ -188,6 +188,17 @@ export const registerForChallenge = async (challengeId: string, userId: string) 
 
 /**
  * Submit steps and check for badge thresholds
+ * 
+ * SUPPORTS TWO MODES:
+ * 1. ABSOLUTE MODE (isAbsolute: true, default): 
+ *    - 'steps' is the TOTAL cumulative steps from health app
+ *    - Backend calculates delta = submitted_steps - current_total
+ *    - Only the delta is added (prevents duplication)
+ *    - If submitted < current, no steps added (prevents going backwards)
+ * 
+ * 2. INCREMENTAL MODE (isAbsolute: false):
+ *    - 'steps' is added directly to the total
+ *    - Use ONLY for manual "Add Steps" feature
  */
 export const submitUserSteps = async (
   challengeId: string,
@@ -209,16 +220,55 @@ export const submitUserSteps = async (
     throw new apiError(400, 'Challenge has ended');
   }
 
-  // Record submission
+  const currentTotal = participant.total_steps || 0;
+  let stepsToAdd: number;
+  let newTotal: number;
+  
+  // Determine the submission mode (default to absolute for safety)
+  const isAbsolute = data.isAbsolute !== false;
+  
+  if (isAbsolute) {
+    // ABSOLUTE MODE: Calculate delta from cumulative total
+    // data.steps = total steps from HealthKit/Health Connect
+    
+    if (data.steps <= currentTotal) {
+      // No new steps to add (could be same sync or device reset)
+      // Return current state without error
+      const leaderboard = await getChallengeLeaderboard(challengeId, 100);
+      const userRank = leaderboard.findIndex((l: { user_id: string }) => l.user_id === userId) + 1;
+      
+      return ok({
+        totalSteps: currentTotal,
+        stepsSubmitted: 0,
+        currentRank: userRank || null,
+        newBadges: [],
+        message: 'Already synced. No new steps detected.'
+      }, 'Steps already synced');
+    }
+    
+    // Calculate delta (new steps since last sync)
+    stepsToAdd = data.steps - currentTotal;
+    newTotal = data.steps; // Set to the absolute value from device
+  } else {
+    // INCREMENTAL MODE: Add steps directly (for manual entry)
+    stepsToAdd = data.steps;
+    newTotal = currentTotal + data.steps;
+  }
+
+  // Record submission with delta
   await submitSteps({
     participantId: participant.id,
-    steps: data.steps,
+    steps: stepsToAdd, // Record actual steps added
     source: data.source,
-    deviceInfo: data.deviceInfo
+    deviceInfo: {
+      ...data.deviceInfo,
+      submissionMode: isAbsolute ? 'absolute' : 'incremental',
+      deviceReportedTotal: isAbsolute ? data.steps : undefined,
+      previousTotal: currentTotal
+    }
   });
 
-  // Add to total (incremental)
-  const newTotal = participant.total_steps + data.steps;
+  // Update total
   await updateParticipantSteps(participant.id, newTotal);
 
   // Check for new badges (only thresholds newly reached in this submission)
@@ -226,7 +276,7 @@ export const submitUserSteps = async (
   const thresholds = (challenge.badge_thresholds || []) as BadgeThreshold[];
   
   const newlyReachedThresholds = thresholds.filter(
-    t => newTotal >= t.steps && participant.total_steps < t.steps
+    t => newTotal >= t.steps && currentTotal < t.steps
   );
   
   for (const threshold of newlyReachedThresholds) {
@@ -254,7 +304,9 @@ export const submitUserSteps = async (
 
   return ok({
     totalSteps: newTotal,
-    stepsSubmitted: data.steps,
+    stepsSubmitted: stepsToAdd,
+    previousTotal: currentTotal,
+    submissionMode: isAbsolute ? 'absolute' : 'incremental',
     currentRank: userRank || null,
     newBadges
   }, 'Steps submitted successfully');

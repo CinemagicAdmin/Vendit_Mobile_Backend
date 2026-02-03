@@ -8,7 +8,8 @@ import {
   stepChallengeCreateSchema,
   stepChallengeUpdateSchema,
   challengeListQuerySchema,
-  paginationQuerySchema
+  paginationQuerySchema,
+  uuidParamSchema
 } from './step-challenges.validators.js';
 import {
   createStepChallenge,
@@ -33,6 +34,20 @@ export const uploadBadgeIconApi = async (req: Request, res: Response, next: Next
     const file = req.file;
     if (!file) {
       res.status(400).json({ status: 400, message: 'No file uploaded' });
+      return;
+    }
+
+    // File size validation (max 2MB)
+    const MAX_SIZE = 2 * 1024 * 1024;
+    if (file.size > MAX_SIZE) {
+      res.status(400).json({ status: 400, message: 'File too large. Maximum size is 2MB' });
+      return;
+    }
+
+    // File type validation
+    const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif'];
+    if (!ALLOWED_TYPES.includes(file.mimetype)) {
+      res.status(400).json({ status: 400, message: 'Invalid file type. Only PNG, JPEG, WebP, and GIF are allowed' });
       return;
     }
 
@@ -123,7 +138,7 @@ export const listChallengesApi = async (req: Request, res: Response, next: NextF
  */
 export const getChallengeDetailsApi = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = uuidParamSchema.parse(req.params.id);
     const result = await getStepChallengeDetails(id);
     res.json(result);
   } catch (error) {
@@ -144,7 +159,7 @@ export const updateChallengeApi = async (req: Request, res: Response, next: Next
       return;
     }
 
-    const { id } = req.params;
+    const id = uuidParamSchema.parse(req.params.id);
     const validated = stepChallengeUpdateSchema.parse(req.body);
     const result = await updateStepChallenge(id, validated);
 

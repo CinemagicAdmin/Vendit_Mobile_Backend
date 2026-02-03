@@ -1,6 +1,11 @@
 import { z } from 'zod';
 
 /**
+ * UUID parameter validation schema
+ */
+export const uuidParamSchema = z.string().uuid('Invalid ID format');
+
+/**
  * Badge threshold schema
  */
 export const badgeThresholdSchema = z.object({
@@ -145,18 +150,44 @@ export const stepChallengeUpdateSchema = z.object({
 
 /**
  * Schema for step submission from health apps
+ * 
+ * IMPORTANT: Step Submission Modes
+ * 
+ * 1. ABSOLUTE MODE (isAbsolute: true) - RECOMMENDED for Health Apps
+ *    - Mobile app sends total cumulative steps from HealthKit/Health Connect
+ *    - Backend calculates delta and adds only the new steps
+ *    - Prevents duplication on multiple sync calls
+ *    - Example: HealthKit shows 5000 steps total → send { steps: 5000, isAbsolute: true }
+ * 
+ * 2. INCREMENTAL MODE (isAbsolute: false) - For manual entry only
+ *    - Steps are added to existing total
+ *    - Use only for manual "Add Steps" feature
+ *    - Example: User manually adds 500 steps → send { steps: 500, isAbsolute: false }
  */
 export const stepSubmissionSchema = z.object({
   steps: z
     .number()
     .int('Steps must be an integer')
-    .positive('Steps must be positive')
-    .max(500000, 'Steps cannot exceed 500,000 per submission'),
+    .nonnegative('Steps must be non-negative')
+    .max(500000, 'Steps cannot exceed 500,000'),
+  
+  // When true, 'steps' represents total cumulative steps from health app
+  // Backend will calculate the delta and add only new steps
+  isAbsolute: z
+    .boolean()
+    .optional()
+    .default(true), // Default to absolute for safety (prevents duplication)
   
   source: z
     .enum(['apple_health', 'health_connect', 'manual'])
     .optional()
     .default('manual'),
+  
+  // Timestamp of the last sync from the device (for conflict resolution)
+  lastDeviceSyncAt: z
+    .string()
+    .datetime()
+    .optional(),
   
   deviceInfo: z
     .record(z.string(), z.unknown())

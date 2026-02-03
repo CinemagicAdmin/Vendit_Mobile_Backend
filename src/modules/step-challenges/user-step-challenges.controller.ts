@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import {
   stepSubmissionSchema,
+  uuidParamSchema
   // paginationQuerySchema
 } from './step-challenges.validators.js';
 import {
@@ -43,7 +44,7 @@ export const registerForChallengeApi = async (req: Request, res: Response, next:
       return;
     }
 
-    const { id: challengeId } = req.params;
+    const challengeId = uuidParamSchema.parse(req.params.id);
     const result = await registerForChallenge(challengeId, userId);
     res.status(201).json(result);
   } catch (error) {
@@ -63,7 +64,7 @@ export const submitStepsApi = async (req: Request, res: Response, next: NextFunc
       return;
     }
 
-    const { id: challengeId } = req.params;
+    const challengeId = uuidParamSchema.parse(req.params.id);
     const validated = stepSubmissionSchema.parse(req.body);
     const result = await submitUserSteps(challengeId, userId, validated);
     res.json(result);
@@ -84,7 +85,7 @@ export const getProgressApi = async (req: Request, res: Response, next: NextFunc
       return;
     }
 
-    const { id: challengeId } = req.params;
+    const challengeId = uuidParamSchema.parse(req.params.id);
     const result = await getUserChallengeProgress(challengeId, userId);
     res.json(result);
   } catch (error) {
