@@ -191,7 +191,7 @@ export const deleteChallengeApi = async (req: Request, res: Response, next: Next
       return;
     }
 
-    const { id } = req.params;
+    const id = uuidParamSchema.parse(req.params.id);
     const result = await deleteStepChallenge(id);
 
     // Audit log
@@ -222,7 +222,7 @@ export const toggleChallengeApi = async (req: Request, res: Response, next: Next
       return;
     }
 
-    const { id } = req.params;
+    const id = uuidParamSchema.parse(req.params.id);
     const result = await toggleStepChallenge(id);
 
     // Audit log
@@ -245,8 +245,8 @@ export const toggleChallengeApi = async (req: Request, res: Response, next: Next
  */
 export const getLeaderboardApi = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { id } = req.params;
-    const limit = parseInt(req.query.limit as string) || 50;
+    const id = uuidParamSchema.parse(req.params.id);
+    const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 50, 1), 100);
     const result = await getLeaderboard(id, limit);
     res.json(result);
   } catch (error) {
@@ -259,7 +259,7 @@ export const getLeaderboardApi = async (req: Request, res: Response, next: NextF
  */
 export const getParticipantsApi = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = uuidParamSchema.parse(req.params.id);
     const query = paginationQuerySchema.parse(req.query);
     const result = await getParticipants(id, { page: query.page, limit: query.limit });
     res.json(result);
@@ -281,7 +281,7 @@ export const finalizeChallengeApi = async (req: Request, res: Response, next: Ne
       return;
     }
 
-    const { id } = req.params;
+    const id = uuidParamSchema.parse(req.params.id);
     const result = await finalizeStepChallenge(id);
 
     // Audit log

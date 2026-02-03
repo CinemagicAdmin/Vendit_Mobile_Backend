@@ -98,8 +98,8 @@ export const getProgressApi = async (req: Request, res: Response, next: NextFunc
  */
 export const getLeaderboardApi = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { id } = req.params;
-    const limit = parseInt(req.query.limit as string) || 10;
+    const id = uuidParamSchema.parse(req.params.id);
+    const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 10, 1), 100);
     const result = await getLeaderboard(id, limit);
     res.json(result);
   } catch (error) {

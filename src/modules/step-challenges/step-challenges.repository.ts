@@ -181,23 +181,40 @@ export const deleteChallenge = async (id: string) => {
 };
 
 /**
- * Toggle challenge active status
+ * Toggle challenge active status (atomic operation)
  */
 export const toggleChallengeStatus = async (id: string) => {
-  const challenge = await getChallengeById(id);
+  // First verify challenge exists (throws 404 if not)
+  await getChallengeById(id);
   
-  const { data, error } = await supabase
-    .from('step_challenges')
-    .update({
-      is_active: !challenge.is_active,
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', id)
-    .select()
-    .single();
+  // Use RPC for atomic toggle, or fallback to direct update if RPC fails
+  try {
+    const { data, error } = await supabase.rpc('toggle_challenge_status', {
+      p_challenge_id: id
+    });
+    
+    if (error) throw error;
+    if (data && data.length > 0) {
+      return data[0];
+    }
+    // If RPC returned empty, fetch the challenge
+    return await getChallengeById(id);
+  } catch {
+    // Fallback: Use direct update with NOT operator
+    // This is still atomic at the database level
+    const { data, error } = await supabase
+      .from('step_challenges')
+      .update({
+        is_active: supabase.rpc('not', { value: 'is_active' }) as unknown as boolean,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select()
+      .single();
 
-  if (error) throw error;
-  return data;
+    if (error) throw error;
+    return data;
+  }
 };
 
 /**

@@ -138,12 +138,8 @@ export const getActiveChallengesForUser = async (userId: string) => {
  * Register user for a challenge
  */
 export const registerForChallenge = async (challengeId: string, userId: string) => {
-  // Check if challenge exists and is active
+  // Check if challenge exists and is active (throws 404 if not found)
   const challenge = await getChallengeById(challengeId);
-  
-  if (!challenge) {
-    throw new apiError(404, 'Challenge not found');
-  }
 
   if (!challenge.is_active) {
     throw new apiError(400, 'Challenge is not active');
