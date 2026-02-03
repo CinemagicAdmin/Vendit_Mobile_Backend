@@ -2,6 +2,7 @@ import axios from 'axios';
 import { getConfig } from '../../config/env.js';
 import { logger } from '../../config/logger.js';
 import { cacheWrap, CacheKeys, CacheTTL } from '../../libs/cache.js';
+import { supabase } from '../../libs/supabase.js';
 import {
   getMachineById,
   getMachineSlots,
@@ -307,10 +308,34 @@ const decreaseRemoteSlotQuantity = async (
       return;
     }
 
-    // CRITICAL: Get machine u_id from database
-    // The RPC expects machine_u_id (UUID), not machine_tag (string)
-    const machine = await getMachineById(machineId);
-    if (!machine || !machine.u_id) {
+    // CRITICAL: Get machine UUID from database by machine_tag
+    // - machineId passed is machine_tag (e.g., "VendTest")
+    // - RPC expects vm_id as UUID (stored in u_id column)
+    // - Must query machines table by machine_tag to get u_id
+    let machineUId: string | null = null;
+    
+    try {
+      const { data: machine, error: machineError } = await supabase
+        .from('machines')
+        .select('u_id, machine_tag')
+        .or(`machine_tag.eq.${machineId},u_id.eq.${machineId}`)
+        .maybeSingle();
+      
+      if (machineError) {
+        logger.error({ machineError, machineId }, 'Error querying machine');
+        return;
+      }
+      
+      machineUId = machine?.u_id ?? null;
+    } catch (lookupError) {
+      logger.error(
+        { error: lookupError instanceof Error ? lookupError.message : lookupError, machineId },
+        'Failed to lookup machine'
+      );
+      return;
+    }
+    
+    if (!machineUId) {
       logger.warn(
         { machineId, slotNumber },
         'Machine not found or missing u_id, skipping quantity update'
@@ -320,7 +345,7 @@ const decreaseRemoteSlotQuantity = async (
 
     const rpcUrl = `${remoteMachineBaseUrl}/rpc/decrease_slot_quantity`;
     const payload = {
-      vm_id: machine.u_id, // Use machine_u_id (UUID), not machineId (tag)
+      vm_id: machineUId, // Use machine_u_id (UUID), not machineId (tag)
       slot: slotNum,
       qty: quantity
     };
@@ -336,7 +361,7 @@ const decreaseRemoteSlotQuantity = async (
     });
 
     logger.info(
-      { machineId, machineUId: machine.u_id, slotNumber: slotNum, quantity, statusCode: response.status },
+      { machineId, machineUId, slotNumber: slotNum, quantity, statusCode: response.status },
       'Remote slot quantity decreased successfully'
     );
   } catch (error) {
