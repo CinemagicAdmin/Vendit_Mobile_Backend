@@ -307,9 +307,20 @@ const decreaseRemoteSlotQuantity = async (
       return;
     }
 
+    // CRITICAL: Get machine u_id from database
+    // The RPC expects machine_u_id (UUID), not machine_tag (string)
+    const machine = await getMachineById(machineId);
+    if (!machine || !machine.u_id) {
+      logger.warn(
+        { machineId, slotNumber },
+        'Machine not found or missing u_id, skipping quantity update'
+      );
+      return;
+    }
+
     const rpcUrl = `${remoteMachineBaseUrl}/rpc/decrease_slot_quantity`;
     const payload = {
-      vm_id: machineId.trim(),
+      vm_id: machine.u_id, // Use machine_u_id (UUID), not machineId (tag)
       slot: slotNum,
       qty: quantity
     };
@@ -325,7 +336,7 @@ const decreaseRemoteSlotQuantity = async (
     });
 
     logger.info(
-      { machineId, slotNumber: slotNum, quantity, statusCode: response.status },
+      { machineId, machineUId: machine.u_id, slotNumber: slotNum, quantity, statusCode: response.status },
       'Remote slot quantity decreased successfully'
     );
   } catch (error) {
@@ -343,7 +354,7 @@ const decreaseRemoteSlotQuantity = async (
       errorDetails.httpStatusText = error.response?.statusText;
       errorDetails.responseData = error.response?.data;
       errorDetails.requestUrl = `${remoteMachineBaseUrl}/rpc/decrease_slot_quantity`;
-      errorDetails.requestPayload = { vm_id: machineId, slot: slotNumber, qty: quantity };
+      errorDetails.requestPayload = error.config?.data ? JSON.parse(error.config.data) : null;
       errorDetails.timeout = error.code === 'ECONNABORTED';
     }
 
