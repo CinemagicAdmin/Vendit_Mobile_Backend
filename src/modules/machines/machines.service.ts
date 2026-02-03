@@ -260,12 +260,14 @@ const getProductForSlot = async (machineId: string, slotNumber: string): Promise
 /**
  * Decrease slot quantity on remote machine database after successful dispense
  * Non-blocking - logs errors but doesn't affect dispense success
+ * Validates all inputs to prevent invalid RPC calls
  */
 const decreaseRemoteSlotQuantity = async (
   machineId: string,
   slotNumber: string | number,
   quantity: number = 1
 ): Promise<void> => {
+  // Guard 1: Configuration validation
   if (!remoteMachineBaseUrl || !remoteMachineApiKey) {
     logger.warn(
       { remoteMachineBaseUrl: !!remoteMachineBaseUrl, remoteMachineApiKey: !!remoteMachineApiKey },
@@ -274,18 +276,40 @@ const decreaseRemoteSlotQuantity = async (
     return;
   }
 
+  // Guard 2: Machine ID validation
+  if (!machineId || typeof machineId !== 'string' || machineId.trim().length === 0) {
+    logger.warn(
+      { machineId, slotNumber },
+      'Invalid machineId (empty or not a string), skipping quantity update'
+    );
+    return;
+  }
+
+  // Guard 3: Quantity validation (CRITICAL: prevent negative quantities!)
+  if (!Number.isInteger(quantity) || quantity <= 0) {
+    logger.warn(
+      { machineId, slotNumber, quantity, type: typeof quantity },
+      'Invalid quantity (must be positive integer), skipping quantity update'
+    );
+    return;
+  }
+
   try {
-    // Parse slot number to integer (RPC expects numeric slot)
+    // Guard 4: Slot number parsing and validation
     const slotNum = typeof slotNumber === 'string' ? parseInt(slotNumber, 10) : slotNumber;
     
-    if (isNaN(slotNum)) {
-      logger.warn({ machineId, slotNumber }, 'Invalid slot number format, skipping quantity update');
+    // Validate: must be a valid non-negative integer
+    if (isNaN(slotNum) || !Number.isInteger(slotNum) || slotNum < 0) {
+      logger.warn(
+        { machineId, slotNumber, parsed: slotNum, type: typeof slotNumber },
+        'Invalid slot number (must be non-negative integer), skipping quantity update'
+      );
       return;
     }
 
     const rpcUrl = `${remoteMachineBaseUrl}/rpc/decrease_slot_quantity`;
     const payload = {
-      vm_id: machineId,
+      vm_id: machineId.trim(),
       slot: slotNum,
       qty: quantity
     };
