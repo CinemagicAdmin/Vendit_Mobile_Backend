@@ -267,7 +267,10 @@ const decreaseRemoteSlotQuantity = async (
   quantity: number = 1
 ): Promise<void> => {
   if (!remoteMachineBaseUrl || !remoteMachineApiKey) {
-    logger.warn('Remote machine API not configured, skipping slot quantity update');
+    logger.warn(
+      { remoteMachineBaseUrl: !!remoteMachineBaseUrl, remoteMachineApiKey: !!remoteMachineApiKey },
+      'Remote machine API not configured, skipping slot quantity update'
+    );
     return;
   }
 
@@ -280,34 +283,48 @@ const decreaseRemoteSlotQuantity = async (
       return;
     }
 
+    const rpcUrl = `${remoteMachineBaseUrl}/rpc/decrease_slot_quantity`;
+    const payload = {
+      vm_id: machineId,
+      slot: slotNum,
+      qty: quantity
+    };
+
     // Call remote Supabase RPC to decrease slot quantity
-    await axios.post(
-      `${remoteMachineBaseUrl}/rpc/decrease_slot_quantity`,
-      {
-        vm_id: machineId,
-        slot: slotNum,
-        qty: quantity
+    const response = await axios.post(rpcUrl, payload, {
+      headers: {
+        apikey: remoteMachineApiKey,
+        Authorization: `Bearer ${remoteMachineApiKey}`,
+        'Content-Type': 'application/json'
       },
-      {
-        headers: {
-          apikey: remoteMachineApiKey,
-          Authorization: `Bearer ${remoteMachineApiKey}`,
-          'Content-Type': 'application/json'
-        },
-        timeout: 10000 // 10 second timeout
-      }
-    );
+      timeout: 10000 // 10 second timeout
+    });
 
     logger.info(
-      { machineId, slotNumber: slotNum, quantity },
+      { machineId, slotNumber: slotNum, quantity, statusCode: response.status },
       'Remote slot quantity decreased successfully'
     );
   } catch (error) {
+    // Extract safe error details for logging (avoid circular refs from axios errors)
+    const errorDetails: Record<string, any> = {
+      machineId,
+      slotNumber,
+      quantity,
+      errorMessage: error instanceof Error ? error.message : 'Unknown error'
+    };
+
+    // Add axios-specific error details if available
+    if (axios.isAxiosError(error)) {
+      errorDetails.httpStatus = error.response?.status;
+      errorDetails.httpStatusText = error.response?.statusText;
+      errorDetails.responseData = error.response?.data;
+      errorDetails.requestUrl = `${remoteMachineBaseUrl}/rpc/decrease_slot_quantity`;
+      errorDetails.requestPayload = { vm_id: machineId, slot: slotNumber, qty: quantity };
+      errorDetails.timeout = error.code === 'ECONNABORTED';
+    }
+
     // Log error but don't throw - slot quantity update is secondary to dispense
-    logger.error(
-      { error, machineId, slotNumber, quantity },
-      'Failed to decrease remote slot quantity'
-    );
+    logger.error(errorDetails, 'Failed to decrease remote slot quantity');
   }
 };
 
@@ -422,8 +439,16 @@ export const dispatchDispenseCommand = async (
         
         // Decrease slot quantity on remote machine database
         if (machineId && slotNumber) {
-          decreaseRemoteSlotQuantity(machineId, slotNumber, 1)
-            .catch((err) => logger.warn({ err }, 'Slot quantity update failed'));
+          decreaseRemoteSlotQuantity(machineId, slotNumber, 1).catch((err) => {
+            logger.error(
+              {
+                error: err instanceof Error ? err.message : 'Unknown',
+                machineId,
+                slotNumber
+              },
+              'Slot quantity update promise rejected'
+            );
+          });
         }
         
         resolve(ok({ acknowledged: true, commandSent: success }, 'Dispense command sent'));
