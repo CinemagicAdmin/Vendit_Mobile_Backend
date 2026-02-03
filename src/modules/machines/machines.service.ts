@@ -258,6 +258,60 @@ const getProductForSlot = async (machineId: string, slotNumber: string): Promise
 };
 
 /**
+ * Decrease slot quantity on remote machine database after successful dispense
+ * Non-blocking - logs errors but doesn't affect dispense success
+ */
+const decreaseRemoteSlotQuantity = async (
+  machineId: string,
+  slotNumber: string | number,
+  quantity: number = 1
+): Promise<void> => {
+  if (!remoteMachineBaseUrl || !remoteMachineApiKey) {
+    logger.warn('Remote machine API not configured, skipping slot quantity update');
+    return;
+  }
+
+  try {
+    // Parse slot number to integer (RPC expects numeric slot)
+    const slotNum = typeof slotNumber === 'string' ? parseInt(slotNumber, 10) : slotNumber;
+    
+    if (isNaN(slotNum)) {
+      logger.warn({ machineId, slotNumber }, 'Invalid slot number format, skipping quantity update');
+      return;
+    }
+
+    // Call remote Supabase RPC to decrease slot quantity
+    await axios.post(
+      `${remoteMachineBaseUrl}/rpc/decrease_slot_quantity`,
+      {
+        vm_id: machineId,
+        slot: slotNum,
+        qty: quantity
+      },
+      {
+        headers: {
+          apikey: remoteMachineApiKey,
+          Authorization: `Bearer ${remoteMachineApiKey}`,
+          'Content-Type': 'application/json'
+        },
+        timeout: 10000 // 10 second timeout
+      }
+    );
+
+    logger.info(
+      { machineId, slotNumber: slotNum, quantity },
+      'Remote slot quantity decreased successfully'
+    );
+  } catch (error) {
+    // Log error but don't throw - slot quantity update is secondary to dispense
+    logger.error(
+      { error, machineId, slotNumber, quantity },
+      'Failed to decrease remote slot quantity'
+    );
+  }
+};
+
+/**
  * Dispatch dispense command - fire-and-forget pattern
  * Returns success once command is sent (server doesn't send acknowledgements)
  */
@@ -364,6 +418,12 @@ export const dispatchDispenseCommand = async (
               logger.error({ trackingError, paymentId }, 'Failed to update payment_products');
               // Don't fail the dispense - product tracking is secondary
             });
+        }
+        
+        // Decrease slot quantity on remote machine database
+        if (machineId && slotNumber) {
+          decreaseRemoteSlotQuantity(machineId, slotNumber, 1)
+            .catch((err) => logger.warn({ err }, 'Slot quantity update failed'));
         }
         
         resolve(ok({ acknowledged: true, commandSent: success }, 'Dispense command sent'));
