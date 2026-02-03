@@ -12,7 +12,8 @@ import {
   deactivateCoupon,
   recordCouponUsage,
   incrementCouponUsage,
-  listCouponUsageHistory
+  listCouponUsageHistory,
+  listAvailableCoupons
 } from './coupons.repository.js';
 import type { CreateCouponInput, UpdateCouponInput, ValidateCouponInput } from './coupons.validators.js';
 
@@ -369,35 +370,13 @@ export const validateCouponService = async (
 };
 
 /**
- * List available coupons for user (optional feature)
+ * List available coupons for user (optimized - no N+1 queries)
  */
 export const listAvailableCouponsService = async (userId: string) => {
   logger.info({ userId }, 'Listing available coupons for user');
   
-  const result = await listCoupons({
-    status: 'active',
-    limit: 20
-  });
-  
-  // Filter out coupons user has already maxed out
-  const availableCoupons = [];
-  
-  for (const coupon of result.coupons) {
-    const userUsageCount = await getCouponUsageCount(coupon.id, userId);
-    const maxUsesPerUser = coupon.max_uses_per_user || 1;
-    
-    if (userUsageCount < maxUsesPerUser) {
-      availableCoupons.push({
-        code: coupon.code,
-        description: coupon.description,
-        discountType: coupon.discount_type,
-        discountValue: coupon.discount_value,
-        minPurchaseAmount: coupon.min_purchase_amount,
-        validUntil: coupon.valid_until,
-        remainingUses: maxUsesPerUser - userUsageCount
-      });
-    }
-  }
+  const availableCoupons = await listAvailableCoupons(userId, 20);
   
   return ok({ coupons: availableCoupons }, 'Available coupons retrieved');
 };
+

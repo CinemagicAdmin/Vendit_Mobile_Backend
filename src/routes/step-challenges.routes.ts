@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { requireAuth } from '../middleware/auth.js';
+import { stepSubmissionLimiter } from '../middleware/rate-limiters.js';
 import {
   getActiveChallengesApi,
   registerForChallengeApi,
@@ -23,8 +24,8 @@ router.get('/my-badges', getMyBadgesApi);
 // Register for a challenge
 router.post('/:id/register', registerForChallengeApi);
 
-// Submit step count
-router.post('/:id/submit', submitStepsApi);
+// Submit step count (with rate limiting)
+router.post('/:id/submit', stepSubmissionLimiter, submitStepsApi);
 
 // Get user's progress in challenge
 router.get('/:id/progress', getProgressApi);

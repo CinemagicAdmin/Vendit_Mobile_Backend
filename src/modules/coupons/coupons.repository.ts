@@ -392,3 +392,71 @@ export const listCouponUsageHistory = async (couponId: string, options: {
     }
   };
 };
+
+/**
+ * List available coupons for a specific user (optimized)
+ * Uses a single SQL query to avoid N+1 problem
+ */
+export const listAvailableCoupons = async (userId: string, limit: number = 20) => {
+  logger.info({ userId, limit }, 'Listing available coupons for user');
+  
+  const now = new Date().toISOString();
+  
+  // Get active coupons with user usage count in single query
+  const { data, error } = await supabase
+    .from('discount_coupons')
+    .select(`
+      id,
+      code,
+      description,
+      discount_type,
+      discount_value,
+      min_purchase_amount,
+      max_uses_per_user,
+      valid_until,
+      coupon_usage!left (
+        user_id
+      )
+    `)
+    .eq('is_active', true)
+    .lte('valid_from', now)
+    .gte('valid_until', now)
+    .limit(limit);
+  
+  if (error) {
+    logger.error({ error, userId }, 'Failed to list available coupons');
+    throw error;
+  }
+  
+  // Filter and transform results
+  const availableCoupons = (data ?? [])
+    .map(coupon => {
+      // Count how many times this user has used this coupon
+      const userUsageCount = (coupon.coupon_usage || [])
+        .filter((usage: any) => usage.user_id === userId)
+        .length;
+      
+      const maxUsesPerUser = coupon.max_uses_per_user || 1;
+      const remainingUses = maxUsesPerUser - userUsageCount;
+      
+      return {
+        coupon,
+        userUsageCount,
+        maxUsesPerUser,
+        remainingUses
+      };
+    })
+    .filter(item => item.remainingUses > 0)
+    .map(item => ({
+      code: item.coupon.code,
+      description: item.coupon.description,
+      discountType: item.coupon.discount_type,
+      discountValue: item.coupon.discount_value,
+      minPurchaseAmount: item.coupon.min_purchase_amount,
+      validUntil: item.coupon.valid_until,
+      remainingUses: item.remainingUses
+    }));
+  
+  return availableCoupons;
+};
+

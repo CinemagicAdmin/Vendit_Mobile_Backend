@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { requireAuth } from '../middleware/auth.js';
+import { couponValidationLimiter } from '../middleware/rate-limiters.js';
 import {
   validateCouponApi,
   listAvailableCouponsApi
@@ -16,7 +17,7 @@ router.use(requireAuth);
  * @body code, amount, products[]
  * @access Authenticated users
  */
-router.post('/coupons/validate', validateCouponApi);
+router.post('/coupons/validate', couponValidationLimiter, validateCouponApi);
 
 /**
  * @route GET /api/coupons/available

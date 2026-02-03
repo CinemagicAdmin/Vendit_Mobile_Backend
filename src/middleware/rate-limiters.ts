@@ -232,5 +232,54 @@ export const webhookLimiter = rateLimit({
   legacyHeaders: false
 });
 
+/**
+ * Coupon validation rate limiter
+ * 20 validations per minute per user (prevent brute-force)
+ */
+export const couponValidationLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator,
+  message: {
+    status: 429,
+    message: 'Too many coupon validation attempts, please try again later'
+  }
+});
+
+/**
+ * Voucher redemption rate limiter
+ * 5 redemptions per minute per user (prevent abuse)
+ */
+export const voucherRedemptionLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator,
+  message: {
+    status: 429,
+    message: 'Too many redemption attempts, please try again later'
+  }
+});
+
+/**
+ * Step submission rate limiter  
+ * 30 submissions per minute per user (allow flexible tracking)
+ */
+export const stepSubmissionLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator,
+  message: {
+    status: 429,
+    message: 'Too many step submissions, please try again later'
+  }
+});
+
+
 // Re-export default limiter for backwards compatibility
 export { defaultLimiter as rateLimiter };

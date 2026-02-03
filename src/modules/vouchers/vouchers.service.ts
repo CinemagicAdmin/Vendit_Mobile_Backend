@@ -1,6 +1,7 @@
 import QRCode from 'qrcode';
 import { apiError, ok } from '../../utils/response.js';
 import { supabase } from '../../libs/supabase.js';
+import { logger } from '../../config/logger.js';
 import {
   createVoucher,
   getVoucherById,
@@ -65,7 +66,7 @@ export const generateVoucherQR = async (voucherId: string, code: string, amount:
 
     return data.publicUrl;
   } catch (error) {
-    console.error('QR generation error:', error);
+    logger.error({ error, voucherId, code, amount }, 'QR generation failed');
     throw new apiError(500, 'Failed to generate QR code');
   }
 };
@@ -190,7 +191,7 @@ export const redeemVoucher = async (code: string, userId: string) => {
     if (error.status) throw error;
     
     // Wrap other errors
-    console.error('Voucher redemption error:', error);
+    logger.error({ error, userId, voucherCode: code }, 'Voucher redemption failed');
     throw new apiError(500, 'Failed to redeem voucher');
   }
 };
@@ -225,7 +226,7 @@ export const createVoucherWithQR = async (
     return updatedVoucher;
   } catch (error) {
     // QR generation failed, but voucher created
-    console.error('QR generation failed for voucher:', voucher.id, error);
+    logger.error({ error, voucherId: voucher.id, code: voucher.code }, 'QR generation failed for voucher');
     return voucher; // Return voucher without QR
   }
 };
@@ -248,7 +249,7 @@ export const updateVoucherData = async (id: string, data: Record<string, unknown
       const qrUrl = await generateVoucherQR(updatedVoucher.id, updatedVoucher.code, updatedVoucher.amount);
       return await updateVoucherQRUrl(updatedVoucher.id, qrUrl);
     } catch (error) {
-      console.error('QR regeneration failed:', error);
+      logger.error({ error, voucherId: updatedVoucher.id }, 'QR regeneration failed');
       return updatedVoucher;
     }
   }
@@ -296,7 +297,7 @@ export const deleteVoucherWithQR = async (id: string): Promise<void> => {
         .from(STORAGE_BUCKET)
         .remove([fileName]);
     } catch (error) {
-      console.error('Failed to delete QR file:', error);
+      logger.error({ error, voucherId: id }, 'Failed to delete QR file from storage');
       // Continue anyway, database record is already deleted
     }
   }

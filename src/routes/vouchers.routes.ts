@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { requireAuth } from '../middleware/auth.js';
+import { voucherRedemptionLimiter } from '../middleware/rate-limiters.js';
 import {
   redeemVoucherApi,
   getUserRedemptionHistory
@@ -16,7 +17,7 @@ router.use(requireAuth);
  * @body code
  * @access Authenticated users
  */
-router.post('/redeem', redeemVoucherApi);
+router.post('/redeem', voucherRedemptionLimiter, redeemVoucherApi);
 
 /**
  * @route GET /api/vouchers/history
