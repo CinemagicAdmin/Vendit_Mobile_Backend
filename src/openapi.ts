@@ -233,6 +233,175 @@ const definition = {
             ]
           }
         }
+      },
+      // Coupon Schemas
+      CouponPayload: {
+        type: 'object',
+        required: ['code', 'discountType', 'discountValue', 'validFrom', 'validUntil'],
+        properties: {
+          code: { type: 'string', example: 'SAVE20' },
+          description: { type: 'string', example: '20% off your purchase' },
+          discountType: { type: 'string', enum: ['PERCENTAGE', 'FIXED_AMOUNT'], example: 'PERCENTAGE' },
+          discountValue: { type: 'number', example: 20, description: 'Percentage (0-100) or fixed amount in KWD' },
+          minPurchaseAmount: { type: 'number', example: 5.000, description: 'Minimum cart amount in KWD' },
+          maxDiscountAmount: { type: 'number', example: 10.000, description: 'Max discount cap in KWD'},
+          maxUsesPerUser: { type: 'integer', example: 1, minimum: 1 },
+          maxTotalUses: { type: 'integer', example: 100, description: 'Total usage limit (optional)' },
+          validFrom: { type: 'string', format: 'date-time', example: '2026-02-01T00:00:00Z' },
+          validUntil: { type: 'string', format: 'date-time', example: '2026-12-31T23:59:59Z' },
+          isActive: { type: 'boolean', example: true }
+        }
+      },
+      ValidateCouponPayload: {
+        type: 'object',
+        required: ['code', 'amount'],
+        properties: {
+          code: { type: 'string', example: 'SAVE20' },
+          amount: { type: 'number', example: 10.000, description: 'Cart total in KWD' }
+        }
+      },
+      CouponResponse: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', format: 'uuid' },
+          code: { type: 'string' },
+          description: { type: 'string' },
+          discount_type: { type: 'string', enum: ['PERCENTAGE', 'FIXED_AMOUNT'] },
+          discount_value: { type: 'string' },
+          min_purchase_amount: { type: 'string' },
+          max_discount_amount: { type: 'string' },
+          max_uses_per_user: { type: 'integer' },
+          current_total_uses: { type: 'integer' },
+          valid_from: { type: 'string', format: 'date-time' },
+          valid_until: { type: 'string', format: 'date-time' },
+          is_active: { type: 'boolean' },
+          created_at: { type: 'string', format: 'date-time' }
+        }
+      },
+      // Voucher Schemas
+      VoucherPayload: {
+        type: 'object',
+        required: ['code', 'amount', 'validFrom', 'validUntil'],
+        properties: {
+          code: { type: 'string', example: 'WELCOME100', description: 'Unique voucher code' },
+          description: { type: 'string', example: 'Welcome bonus - 1 KWD credit' },
+          amount: { type: 'number', example: 1.000, description: 'Wallet credit amount in KWD' },
+          maxRedemptions: { type: 'integer', example: 100, description: 'Total redemption limit (optional)' },
+          maxUsesPerUser: { type: 'integer', example: 1, minimum: 1, description: 'Per-user limit' },
+          validFrom: { type: 'string', format: 'date-time', example: '2026-02-01T00:00:00Z' },
+          validUntil: { type: 'string', format: 'date-time', example: '2026-12-31T23:59:59Z' },
+          isActive: { type: 'boolean', example: true }
+        }
+      },
+      RedeemVoucherPayload: {
+        type: 'object',
+        required: ['code'],
+        properties: {
+          code: { type: 'string', example: 'WELCOME100', description: 'Voucher code from QR or manual entry' }
+        }
+      },
+      VoucherResponse: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', format: 'uuid' },
+          code: { type: 'string' },
+          description: { type: 'string' },
+          amount: { type: 'string', description: 'KWD' },
+          qr_code_url: { type: 'string', format: 'uri', description: 'Public URL to QR code image' },
+          max_redemptions: { type: 'integer' },
+          max_uses_per_user: { type: 'integer' },
+          current_redemptions: { type: 'integer' },
+          valid_from: { type: 'string', format: 'date-time' },
+          valid_until: { type: 'string', format: 'date-time' },
+          is_active: { type: 'boolean' },
+          created_at: { type: 'string', format: 'date-time' }
+        }
+      },
+      // Step Challenge Schemas
+      ChallengePayload: {
+        type: 'object',
+        required: ['name', 'startDate', 'endDate', 'badgeThresholds'],
+        properties: {
+          name: { type: 'string', example: 'March Fitness Challenge' },
+          description: { type: 'string', example: 'Walk your way to better health!' },
+          locationLat: { type: 'number', example: 29.3759, description: 'Optional location latitude' },
+          locationLong: { type: 'number', example: 47.9774, description: 'Optional location longitude' },
+          locationName: { type: 'string', example: 'Kuwait City', description: 'Optional location name' },
+          badgeThresholds: {
+            type: 'array',
+            description: 'Step thresholds for awarding badges',
+            example: [
+              { steps: 10000, badge_name: 'Bronze Walker', badge_icon: '🥉' },
+              { steps: 25000, badge_name: 'Silver Runner', badge_icon: '🥈' },
+              { steps: 50000, badge_name: 'Gold Champion', badge_icon: '🥇' }
+            ],
+            items: {
+              type: 'object',
+              required: ['steps', 'badge_name', 'badge_icon'],
+              properties: {
+                steps: { type: 'integer', minimum: 1 },
+                badge_name: { type: 'string' },
+                badge_icon: { type: 'string', description: 'Emoji or icon identifier' }
+              }
+            }
+          },
+          startDate: { type: 'string', format: 'date-time', example: '2026-03-01T00:00:00Z' },
+          endDate: { type: 'string', format: 'date-time', example: '2026-03-31T23:59:59Z' },
+          isActive: { type: 'boolean', example: true }
+        }
+      },
+      SubmitStepsPayload: {
+        type: 'object',
+        required: ['steps'],
+        properties: {
+          steps: { type: 'integer', minimum: 1, example: 8500, description: 'Number of steps to submit' },
+          source: { type: 'string', example: 'HealthKit', description: 'Optional: GoogleFit, HealthKit, Manual' }
+        }
+      },
+      ChallengeResponse: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', format: 'uuid' },
+          name: { type: 'string' },
+          description: { type: 'string' },
+          location_lat: { type: 'number' },
+          location_long: { type: 'number' },
+          location_name: { type: 'string' },
+          badge_thresholds: { type: 'array', items: { type: 'object' } },
+          start_date: { type: 'string', format: 'date-time' },
+          end_date: { type: 'string', format: 'date-time' },
+          is_active: { type: 'boolean' },
+          created_at: { type: 'string', format: 'date-time' }
+        }
+      },
+      BadgeResponse: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', format: 'uuid' },
+          challenge_name: { type: 'string' },
+          badge_name: { type: 'string' },
+          badge_icon: { type: 'string' },
+          badge_type: { type: 'string', enum: ['STEPS', 'RANKING'] },
+          steps_achieved: { type: 'integer' },
+          awarded_at: { type: 'string', format: 'date-time' }
+        }
+      },
+      LeaderboardEntry: {
+        type: 'object',
+        properties: {
+          rank: { type: 'integer', example: 1 },
+          user: {
+            type: 'object',
+            properties: {
+              id: { type: 'string', format: 'uuid' },
+              first_name: { type: 'string' },
+              last_name: { type: 'string' },
+              profile_picture: { type: 'string', format: 'uri' }
+            }
+          },
+          total_steps: { type: 'integer', example: 45000 },
+          last_submission: { type: 'string', format: 'date-time' }
+        }
       }
     }
   },
@@ -773,6 +942,362 @@ const definition = {
         tags: ['Campaigns'],
         security: [{ BearerAuth: [] }],
         responses: { 200: { description: 'Current campaign or 204 if none' } }
+      }
+    },
+    // Coupon Endpoints
+    '/coupons/validate': {
+      post: {
+        summary: 'Validate a coupon code',
+        description: 'Check if coupon is valid and calculate discount amount',
+        tags: ['Coupons'],
+        security: [{ BearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/ValidateCouponPayload' }
+            }
+          }
+        },
+        responses: {
+          200: {
+            description: 'Coupon is valid',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'number', example: 200 },
+                    message: { type: 'string', example: 'Coupon is valid' },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        discountAmount: { type: 'number', example: 2.000, description: 'KWD' },
+                        finalAmount: { type: 'number', example: 8.000, description: 'KWD' }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          400: { description: 'Invalid coupon or validation failed' },
+          429: { description: 'Too many validation attempts' }
+        }
+      }
+    },
+    '/coupons/available': {
+      get: {
+        summary: 'List available coupons for user',
+        description: 'Get all active coupons that the user can still use',
+        tags: ['Coupons'],
+        security: [{ BearerAuth: [] }],
+        responses: {
+          200: {
+            description: 'List of available coupons',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'number', example: 200 },
+                    message: { type: 'string' },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        coupons: {
+                          type: 'array',
+                          items: {
+                            type: 'object',
+                            properties: {
+                              code: { type: 'string' },
+                              description: { type: 'string' },
+                              discountType: { type: 'string' },
+                              discountValue: { type: 'number' },
+                              minPurchaseAmount: { type: 'number' },
+                              validUntil: { type: 'string', format: 'date-time' },
+                              remainingUses: { type: 'integer' }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    // Voucher Endpoints
+    '/vouchers/redeem': {
+      post: {
+        summary: 'Redeem a voucher code',
+        description: 'Redeem voucher and credit wallet. Rate limited to 5 attempts per minute.',
+        tags: ['Vouchers'],
+        security: [{ BearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/RedeemVoucherPayload' }
+            }
+          }
+        },
+        responses: {
+          200: {
+            description: 'Voucher redeemed successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'number', example: 200 },
+                    message: { type: 'string', example: 'Voucher redeemed successfully' },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        amount: { type: 'string', example: '5.000', description: 'Amount credited (KWD)' },
+                        newBalance: { type: 'string', example: '15.500', description: 'New wallet balance (KWD)' }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          400: { description: 'Invalid voucher, already used, or expired' },
+          404: { description: 'Voucher code not found' },
+          429: { description: 'Too many redemption attempts' }
+        }
+      }
+    },
+    '/vouchers/history': {
+      get: {
+        summary: 'Get user voucher redemption history',
+        description: 'List all vouchers the user has redeemed',
+        tags: ['Vouchers'],
+        security: [{ BearerAuth: [] }],
+        parameters: [
+          { in: 'query', name: 'page', schema: { type: 'integer', default: 1 } },
+          { in: 'query', name: 'limit', schema: { type: 'integer', default: 20 } }
+        ],
+        responses: {
+          200: {
+            description: 'Redemption history',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'number' },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        redemptions: {
+                          type: 'array',
+                          items: {
+                            type: 'object',
+                            properties: {
+                              voucher_code: { type: 'string' },
+                              amount_credited: { type: 'string' },
+                              redeemed_at: { type: 'string', format: 'date-time' }
+                            }
+                          }
+                        },
+                        meta: {
+                          type: 'object',
+                          properties: {
+                            page: { type: 'integer' },
+                            limit: { type: 'integer' },
+                            total: { type: 'integer' }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    // Step Challenge Endpoints
+    '/step-challenges/active': {
+      get: {
+        summary: 'Get active step challenges',
+        description: 'List all currently active challenges that users can join',
+        tags: ['Step Challenges'],
+        security: [{ BearerAuth: [] }],
+        responses: {
+          200: {
+            description: 'Active challenges',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'number' },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        challenges: {
+                          type: 'array',
+                          items: { $ref: '#/components/schemas/ChallengeResponse' }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    '/step-challenges/{id}/register': {
+      post: {
+        summary: 'Register for a challenge',
+        description: 'Join a step challenge. Users can only join one active challenge at a time.',
+        tags: ['Step Challenges'],
+        security: [{ BearerAuth: [] }],
+        parameters: [
+          { in: 'path', name: 'id', required: true, schema: { type: 'string', format: 'uuid' }, description: 'Challenge ID' }
+        ],
+        responses: {
+          200: { description: 'Successfully registered' },
+          400: { description: 'Already registered or already in another active challenge' },
+          404: { description: 'Challenge not found' }
+        }
+      }
+    },
+    '/step-challenges/{id}/submit': {
+      post: {
+        summary: 'Submit steps for a challenge',
+        description: 'Submit step count. Rate limited to 30 submissions per minute. Badges awarded automatically when thresholds reached.',
+        tags: ['Step Challenges'],
+        security: [{ BearerAuth: [] }],
+        parameters: [
+          { in: 'path', name: 'id', required: true, schema: { type: 'string', format: 'uuid' } }
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/SubmitStepsPayload' }
+            }
+          }
+        },
+        responses: {
+          200: {
+            description: 'Steps submitted successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'number' },
+                    message: { type: 'string' },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        totalSteps: { type: 'integer', example: 18500 },
+                        rank: { type: 'integer', example: 15 },
+                        newBadges: {
+                          type: 'array',
+                          items: { $ref: '#/components/schemas/BadgeResponse' }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          400: { description: 'Not registered or invalid data' },
+          429: { description: 'Too many step submissions' }
+        }
+      }
+    },
+    '/step-challenges/{id}/progress': {
+      get: {
+        summary: 'Get user progress in challenge',
+        description: 'View total steps, rank, earned badges, and next badge milestone',
+        tags: ['Step Challenges'],
+        security: [{ BearerAuth: [] }],
+        parameters: [
+          { in: 'path', name: 'id', required: true, schema: { type: 'string', format: 'uuid' } }
+        ],
+        responses: {
+          200: {
+            description: 'User progress',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'number' },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        totalSteps: { type: 'integer' },
+                        rank: { type: 'integer' },
+                        badges: {
+                          type: 'array',
+                          items: { $ref: '#/components/schemas/BadgeResponse' }
+                        },
+                        nextBadge: {
+                          type: 'object',
+                          properties: {
+                            badge_name: { type: 'string' },
+                            steps_required: { type: 'integer' },
+                            steps_remaining: { type: 'integer' },
+                            progress_percentage: { type: 'number' }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          400: { description: 'Not registered for this challenge' }
+        }
+      }
+    },
+    '/step-challenges/badges': {
+      get: {
+        summary: 'Get user badge collection',
+        description: 'View all badges earned across all challenges',
+        tags: ['Step Challenges'],
+        security: [{ BearerAuth: [] }],
+        responses: {
+          200: {
+            description: 'User badges',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'number' },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        badges: {
+                          type: 'array',
+                          items: { $ref: '#/components/schemas/BadgeResponse' }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     }
   }
