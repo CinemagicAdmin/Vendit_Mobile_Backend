@@ -167,7 +167,7 @@ export const validateAndCalculateCoupon = async (
   userId: string,
   code: string,
   amount: number,
-  products?: Array<{ productId: string; quantity: number }>
+  _products?: Array<{ productId: string; quantity: number }>
 ): Promise<CouponValidation> => {
   return validateCoupon(userId, code, amount);
 };
