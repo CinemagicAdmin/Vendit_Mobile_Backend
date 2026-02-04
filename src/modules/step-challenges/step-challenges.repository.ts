@@ -1,6 +1,5 @@
 import { supabase } from '../../libs/supabase.js';
 import {
-  LEADERBOARD_DEFAULT_LIMIT,
   LEADERBOARD_TOP_THREE,
   DEFAULT_PAGE,
   DEFAULT_PAGE_LIMIT,
