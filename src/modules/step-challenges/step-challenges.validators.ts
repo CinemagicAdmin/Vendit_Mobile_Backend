@@ -1,4 +1,17 @@
 import { z } from 'zod';
+import {
+  CHALLENGE_NAME_MIN_LENGTH,
+  CHALLENGE_NAME_MAX_LENGTH,
+  CHALLENGE_DESCRIPTION_MAX_LENGTH,
+  BADGE_NAME_MAX_LENGTH,
+  BADGE_ICON_MAX_LENGTH,
+  LOCATION_NAME_MAX_LENGTH,
+  MAX_STEPS_PER_SUBMISSION,
+  DEFAULT_BADGE_ICON,
+  DEFAULT_PAGE,
+  DEFAULT_PAGE_LIMIT,
+  MAX_PAGE_LIMIT
+} from './step-challenges.constants.js';
 
 /**
  * UUID parameter validation schema
@@ -10,8 +23,8 @@ export const uuidParamSchema = z.string().uuid('Invalid ID format');
  */
 export const badgeThresholdSchema = z.object({
   steps: z.number().int().positive('Steps must be positive'),
-  badge_name: z.string().min(1, 'Badge name required').max(50),
-  badge_icon: z.string().max(512).optional().default('🏅')
+  badge_name: z.string().min(1, 'Badge name required').max(BADGE_NAME_MAX_LENGTH),
+  badge_icon: z.string().max(BADGE_ICON_MAX_LENGTH).optional().default(DEFAULT_BADGE_ICON)
 });
 
 /**
@@ -20,12 +33,12 @@ export const badgeThresholdSchema = z.object({
 export const stepChallengeCreateSchema = z.object({
   name: z
     .string()
-    .min(3, 'Name must be at least 3 characters')
-    .max(100, 'Name must not exceed 100 characters'),
+    .min(CHALLENGE_NAME_MIN_LENGTH, `Name must be at least ${CHALLENGE_NAME_MIN_LENGTH} characters`)
+    .max(CHALLENGE_NAME_MAX_LENGTH, `Name must not exceed ${CHALLENGE_NAME_MAX_LENGTH} characters`),
   
   description: z
     .string()
-    .max(1000, 'Description must not exceed 1000 characters')
+    .max(CHALLENGE_DESCRIPTION_MAX_LENGTH, `Description must not exceed ${CHALLENGE_DESCRIPTION_MAX_LENGTH} characters`)
     .optional()
     .nullable(),
   
@@ -37,7 +50,7 @@ export const stepChallengeCreateSchema = z.object({
   
   locationName: z
     .string()
-    .max(200, 'Location name must not exceed 200 characters')
+    .max(LOCATION_NAME_MAX_LENGTH, `Location name must not exceed ${LOCATION_NAME_MAX_LENGTH} characters`)
     .optional()
     .nullable(),
   
@@ -169,7 +182,7 @@ export const stepSubmissionSchema = z.object({
     .number()
     .int('Steps must be an integer')
     .nonnegative('Steps must be non-negative')
-    .max(500000, 'Steps cannot exceed 500,000'),
+    .max(MAX_STEPS_PER_SUBMISSION, `Steps cannot exceed ${MAX_STEPS_PER_SUBMISSION.toLocaleString()}`),
   
   // When true, 'steps' represents total cumulative steps from health app
   // Backend will calculate the delta and add only new steps
@@ -198,8 +211,8 @@ export const stepSubmissionSchema = z.object({
  * Query parameters for listing challenges
  */
 export const challengeListQuerySchema = z.object({
-  page: z.coerce.number().int().positive().optional().default(1),
-  limit: z.coerce.number().int().positive().max(100).optional().default(20),
+  page: z.coerce.number().int().positive().optional().default(DEFAULT_PAGE),
+  limit: z.coerce.number().int().positive().max(MAX_PAGE_LIMIT).optional().default(DEFAULT_PAGE_LIMIT),
   search: z.string().optional(),
   status: z.enum(['all', 'active', 'inactive']).optional().default('all'),
   machineId: z.string().uuid().optional()
@@ -209,8 +222,8 @@ export const challengeListQuerySchema = z.object({
  * Query parameters for pagination
  */
 export const paginationQuerySchema = z.object({
-  page: z.coerce.number().int().positive().optional().default(1),
-  limit: z.coerce.number().int().positive().max(100).optional().default(20)
+  page: z.coerce.number().int().positive().optional().default(DEFAULT_PAGE),
+  limit: z.coerce.number().int().positive().max(MAX_PAGE_LIMIT).optional().default(DEFAULT_PAGE_LIMIT)
 });
 
 // Exported types

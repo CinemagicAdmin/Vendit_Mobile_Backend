@@ -1,4 +1,12 @@
 import { supabase } from '../../libs/supabase.js';
+import {
+  LEADERBOARD_DEFAULT_LIMIT,
+  LEADERBOARD_TOP_THREE,
+  DEFAULT_PAGE,
+  DEFAULT_PAGE_LIMIT,
+  RANKING_BADGE_ICONS,
+  RANKING_BADGE_NAMES
+} from './step-challenges.constants.js';
 
 // Type definitions
 export interface StepChallengeData {
@@ -99,7 +107,7 @@ export const listChallenges = async (
   pagination: PaginationParams = {}
 ) => {
   const { search, status, machineId } = filters;
-  const { page = 1, limit = 20 } = pagination;
+  const { page = DEFAULT_PAGE, limit = DEFAULT_PAGE_LIMIT } = pagination;
   const offset = (page - 1) * limit;
 
   let query = supabase
@@ -473,27 +481,25 @@ export const hasUserBadge = async (userId: string, challengeId: string, badgeNam
  */
 export const awardRankingBadges = async (challengeId: string) => {
   // 1. Get top 3 participants
-  const leaderboard = await getChallengeLeaderboard(challengeId, 3);
+  const leaderboard = await getChallengeLeaderboard(challengeId, LEADERBOARD_TOP_THREE);
   
   if (leaderboard.length === 0) return [];
 
-  const badgeIcons = ['🥇', '🥈', '🥉'];
-  const badgeNames = ['1st Place', '2nd Place', '3rd Place'];
   const createdBadges = [];
 
   for (let i = 0; i < leaderboard.length; i++) {
     const entry = leaderboard[i];
     
     // Check if user already has this specific ranking badge for this challenge
-    const hasBadge = await hasUserBadge(entry.user_id, challengeId, badgeNames[i]);
+    const hasBadge = await hasUserBadge(entry.user_id, challengeId, RANKING_BADGE_NAMES[i]);
     
     if (!hasBadge) {
       const badge = await createBadge({
         userId: entry.user_id,
         challengeId: challengeId,
-        badgeName: badgeNames[i],
+        badgeName: RANKING_BADGE_NAMES[i],
         badgeType: 'ranking',
-        badgeIcon: badgeIcons[i],
+        badgeIcon: RANKING_BADGE_ICONS[i],
         stepsAchieved: entry.total_steps
       });
       createdBadges.push(badge);
