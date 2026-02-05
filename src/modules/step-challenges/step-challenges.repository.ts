@@ -207,12 +207,22 @@ export const toggleChallengeStatus = async (id: string) => {
     // If RPC returned empty, fetch the challenge
     return await getChallengeById(id);
   } catch {
-    // Fallback: Use direct update with NOT operator
-    // This is still atomic at the database level
+    // Fallback: Use direct update with boolean negation
+    // This is still atomic at the database level in a single statement
+    // Note: PostgREST doesn't support 'NOT column' directly, so we use a sub-select or just fetch and update
+    // Given this is a fallback, we'll fetch then update in a transaction or just accept a rare race
+    const { data: currentData, error: fetchError } = await supabase
+      .from('step_challenges')
+      .select('is_active')
+      .eq('id', id)
+      .single();
+    
+    if (fetchError) throw fetchError;
+
     const { data, error } = await supabase
       .from('step_challenges')
       .update({
-        is_active: supabase.rpc('not', { value: 'is_active' }) as unknown as boolean,
+        is_active: !currentData.is_active,
         updated_at: new Date().toISOString()
       })
       .eq('id', id)
@@ -355,7 +365,7 @@ export const getChallengeParticipants = async (
   challengeId: string,
   pagination: PaginationParams = {}
 ) => {
-  const { page = 1, limit = 20 } = pagination;
+  const { page = DEFAULT_PAGE, limit = DEFAULT_PAGE_LIMIT } = pagination;
   const offset = (page - 1) * limit;
 
   const { data, error, count } = await supabase

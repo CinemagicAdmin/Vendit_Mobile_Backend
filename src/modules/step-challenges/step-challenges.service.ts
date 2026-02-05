@@ -22,6 +22,11 @@ import {
   type StepChallengeData,
   type BadgeThreshold
 } from './step-challenges.repository.js';
+import {
+  LEADERBOARD_TOP_THREE,
+  RANK_CALCULATION_LIMIT,
+  LEADERBOARD_DEFAULT_LIMIT
+} from './step-challenges.constants.js';
 import type { StepChallengeCreateInput, StepChallengeUpdateInput, StepSubmissionInput } from './step-challenges.validators.js';
 
 /**
@@ -51,7 +56,7 @@ export const createStepChallenge = async (adminId: string, data: StepChallengeCr
 export const getStepChallengeDetails = async (id: string) => {
   const challenge = await getChallengeById(id);
   const stats = await getChallengeStats(id);
-  const leaderboard = await getChallengeLeaderboard(id, 3); // Top 3
+  const leaderboard = await getChallengeLeaderboard(id, LEADERBOARD_TOP_THREE); // Top 3
 
   return ok({
     challenge,
@@ -98,7 +103,7 @@ export const listStepChallenges = async (
 /**
  * Get challenge leaderboard
  */
-export const getLeaderboard = async (challengeId: string, limit: number = 10) => {
+export const getLeaderboard = async (challengeId: string, limit: number = LEADERBOARD_DEFAULT_LIMIT) => {
   const leaderboard = await getChallengeLeaderboard(challengeId, limit);
   return ok({ leaderboard }, 'Leaderboard retrieved');
 };
@@ -230,7 +235,7 @@ export const submitUserSteps = async (
     if (data.steps <= currentTotal) {
       // No new steps to add (could be same sync or device reset)
       // Return current state without error
-      const leaderboard = await getChallengeLeaderboard(challengeId, 100);
+      const leaderboard = await getChallengeLeaderboard(challengeId, RANK_CALCULATION_LIMIT);
       const userRank = leaderboard.findIndex((l: { user_id: string }) => l.user_id === userId) + 1;
       
       return ok({
@@ -295,7 +300,7 @@ export const submitUserSteps = async (
   }
 
   // Get current rank
-  const leaderboard = await getChallengeLeaderboard(challengeId, 100);
+  const leaderboard = await getChallengeLeaderboard(challengeId, RANK_CALCULATION_LIMIT);
   const userRank = leaderboard.findIndex((l: { user_id: string }) => l.user_id === userId) + 1;
 
   return ok({
@@ -319,7 +324,7 @@ export const getUserChallengeProgress = async (challengeId: string, userId: stri
   }
 
   const challenge = await getChallengeById(challengeId);
-  const leaderboard = await getChallengeLeaderboard(challengeId, 100);
+  const leaderboard = await getChallengeLeaderboard(challengeId, RANK_CALCULATION_LIMIT);
   const userRank = leaderboard.findIndex((l: { user_id: string }) => l.user_id === userId) + 1;
   const badges = await getUserBadges(userId);
   const challengeBadges = badges.filter((b: { challenge_id: string }) => b.challenge_id === challengeId);

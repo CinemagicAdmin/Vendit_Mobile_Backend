@@ -97,13 +97,13 @@ export const stepChallengeCreateSchema = z.object({
 export const stepChallengeUpdateSchema = z.object({
   name: z
     .string()
-    .min(3)
-    .max(100)
+    .min(CHALLENGE_NAME_MIN_LENGTH)
+    .max(CHALLENGE_NAME_MAX_LENGTH)
     .optional(),
   
   description: z
     .string()
-    .max(1000)
+    .max(CHALLENGE_DESCRIPTION_MAX_LENGTH)
     .optional()
     .nullable(),
   
@@ -115,7 +115,7 @@ export const stepChallengeUpdateSchema = z.object({
   
   locationName: z
     .string()
-    .max(200)
+    .max(LOCATION_NAME_MAX_LENGTH)
     .optional()
     .nullable(),
   

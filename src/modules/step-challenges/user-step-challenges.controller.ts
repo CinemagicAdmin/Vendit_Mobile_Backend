@@ -2,7 +2,6 @@ import type { Request, Response, NextFunction } from 'express';
 import {
   stepSubmissionSchema,
   uuidParamSchema
-  // paginationQuerySchema
 } from './step-challenges.validators.js';
 import {
   getActiveChallengesForUser,
@@ -37,7 +36,7 @@ export const getActiveChallengesApi = async (req: Request, res: Response, next: 
  */
 export const registerForChallengeApi = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const userId = (req as any).user?.id;
+    const userId = req.user?.id;
     
     if (!userId) {
       res.status(401).json({ status: 401, message: 'Unauthorized' });
@@ -57,7 +56,7 @@ export const registerForChallengeApi = async (req: Request, res: Response, next:
  */
 export const submitStepsApi = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const userId = (req as any).user?.id;
+    const userId = req.user?.id;
     
     if (!userId) {
       res.status(401).json({ status: 401, message: 'Unauthorized' });
@@ -78,7 +77,7 @@ export const submitStepsApi = async (req: Request, res: Response, next: NextFunc
  */
 export const getProgressApi = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const userId = (req as any).user?.id;
+    const userId = req.user?.id;
     
     if (!userId) {
       res.status(401).json({ status: 401, message: 'Unauthorized' });
@@ -112,7 +111,7 @@ export const getLeaderboardApi = async (req: Request, res: Response, next: NextF
  */
 export const getMyBadgesApi = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const userId = (req as any).user?.id;
+    const userId = req.user?.id;
     
     if (!userId) {
       res.status(401).json({ status: 401, message: 'Unauthorized' });

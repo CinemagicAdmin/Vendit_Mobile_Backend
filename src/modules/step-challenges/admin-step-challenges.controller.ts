@@ -12,6 +12,10 @@ import {
   uuidParamSchema
 } from './step-challenges.validators.js';
 import {
+  MAX_BADGE_ICON_SIZE_BYTES,
+  ALLOWED_IMAGE_TYPES
+} from './step-challenges.constants.js';
+import {
   createStepChallenge,
   getStepChallengeDetails,
   updateStepChallenge,
@@ -37,16 +41,14 @@ export const uploadBadgeIconApi = async (req: Request, res: Response, next: Next
       return;
     }
 
-    // File size validation (max 2MB)
-    const MAX_SIZE = 2 * 1024 * 1024;
-    if (file.size > MAX_SIZE) {
-      res.status(400).json({ status: 400, message: 'File too large. Maximum size is 2MB' });
+    // File size validation
+    if (file.size > MAX_BADGE_ICON_SIZE_BYTES) {
+      res.status(400).json({ status: 400, message: `File too large. Maximum size is ${MAX_BADGE_ICON_SIZE_BYTES / (1024 * 1024)}MB` });
       return;
     }
 
     // File type validation
-    const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif'];
-    if (!ALLOWED_TYPES.includes(file.mimetype)) {
+    if (!ALLOWED_IMAGE_TYPES.includes(file.mimetype as any)) {
       res.status(400).json({ status: 400, message: 'Invalid file type. Only PNG, JPEG, WebP, and GIF are allowed' });
       return;
     }
@@ -85,8 +87,7 @@ export const uploadBadgeIconApi = async (req: Request, res: Response, next: Next
  */
 export const createChallengeApi = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const admin = (req as any).admin;
-    const adminId = admin?.adminId || admin?.id;
+    const adminId = req.admin?.id;
     
     if (!adminId) {
       res.status(401).json({ status: 401, message: 'Unauthorized' });
@@ -151,8 +152,7 @@ export const getChallengeDetailsApi = async (req: Request, res: Response, next: 
  */
 export const updateChallengeApi = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const admin = (req as any).admin;
-    const adminId = admin?.adminId || admin?.id;
+    const adminId = req.admin?.id;
     
     if (!adminId) {
       res.status(401).json({ status: 401, message: 'Unauthorized' });
@@ -183,8 +183,7 @@ export const updateChallengeApi = async (req: Request, res: Response, next: Next
  */
 export const deleteChallengeApi = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const admin = (req as any).admin;
-    const adminId = admin?.adminId || admin?.id;
+    const adminId = req.admin?.id;
     
     if (!adminId) {
       res.status(401).json({ status: 401, message: 'Unauthorized' });
@@ -214,8 +213,7 @@ export const deleteChallengeApi = async (req: Request, res: Response, next: Next
  */
 export const toggleChallengeApi = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const admin = (req as any).admin;
-    const adminId = admin?.adminId || admin?.id;
+    const adminId = req.admin?.id;
     
     if (!adminId) {
       res.status(401).json({ status: 401, message: 'Unauthorized' });
@@ -273,8 +271,7 @@ export const getParticipantsApi = async (req: Request, res: Response, next: Next
  */
 export const finalizeChallengeApi = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const admin = (req as any).admin;
-    const adminId = admin?.adminId || admin?.id;
+    const adminId = req.admin?.id;
     
     if (!adminId) {
       res.status(401).json({ status: 401, message: 'Unauthorized' });
