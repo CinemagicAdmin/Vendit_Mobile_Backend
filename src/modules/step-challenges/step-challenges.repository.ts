@@ -328,13 +328,20 @@ export const submitSteps = async (data: StepSubmissionData) => {
 };
 
 /**
- * Update participant's total steps
+ * Update participant's total steps and daily tracking fields
  */
-export const updateParticipantSteps = async (participantId: string, totalSteps: number) => {
+export const updateParticipantSteps = async (
+  participantId: string,
+  totalSteps: number,
+  dailyStepsSnapshot: number,
+  syncDate: string
+) => {
   const { data, error } = await supabase
     .from('step_challenge_participants')
     .update({
       total_steps: totalSteps,
+      last_daily_steps_snapshot: dailyStepsSnapshot,
+      last_sync_date: syncDate,
       last_step_update: new Date().toISOString()
     })
     .eq('id', participantId)

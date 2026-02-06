@@ -222,38 +222,63 @@ export const submitUserSteps = async (
   }
 
   const currentTotal = participant.total_steps || 0;
+  const lastDailySnapshot = participant.last_daily_steps_snapshot || 0;
+  const lastSyncDate = participant.last_sync_date;
+  
   let stepsToAdd: number;
   let newTotal: number;
+  let newDailySnapshot: number;
   
   // Determine the submission mode (default to absolute for safety)
   const isAbsolute = data.isAbsolute !== false;
   
   if (isAbsolute) {
-    // ABSOLUTE MODE: Calculate delta from cumulative total
-    // data.steps = total steps from HealthKit/Health Connect
+    // ABSOLUTE MODE: data.steps = today's cumulative steps from health app
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+    const isNewDay = !lastSyncDate || lastSyncDate !== today;
     
-    if (data.steps <= currentTotal) {
-      // No new steps to add (could be same sync or device reset)
-      // Return current state without error
-      const leaderboard = await getChallengeLeaderboard(challengeId, RANK_CALCULATION_LIMIT);
-      const userRank = leaderboard.findIndex((l: { user_id: string }) => l.user_id === userId) + 1;
-      
-      return ok({
-        totalSteps: currentTotal,
-        stepsSubmitted: 0,
-        currentRank: userRank || null,
-        newBadges: [],
-        message: 'Already synced. No new steps detected.'
-      }, 'Steps already synced');
+    if (isNewDay) {
+      // NEW DAY DETECTED
+      // Health apps reset daily, so any value is valid for a new day
+      if (data.steps < lastDailySnapshot) {
+        // Confirmed: Daily reset occurred
+        // All steps from new day should be added
+        stepsToAdd = data.steps;
+        newDailySnapshot = data.steps;
+        newTotal = currentTotal + stepsToAdd;
+      } else {
+        // Edge case: Late sync from previous day
+        // Calculate delta from last snapshot
+        stepsToAdd = data.steps - lastDailySnapshot;
+        newDailySnapshot = data.steps;
+        newTotal = currentTotal + stepsToAdd;
+      }
+    } else {
+      // SAME DAY SYNC
+      if (data.steps <= lastDailySnapshot) {
+        // Duplicate sync or no new steps
+        const leaderboard = await getChallengeLeaderboard(challengeId, RANK_CALCULATION_LIMIT);
+        const userRank = leaderboard.findIndex((l: { user_id: string }) => l.user_id === userId) + 1;
+        
+        return ok({
+          totalSteps: currentTotal,
+          stepsSubmitted: 0,
+          currentRank: userRank || null,
+          newBadges: [],
+          message: 'Already synced. No new steps detected.'
+        }, 'Steps already synced');
+      } else {
+        // More steps walked today
+        stepsToAdd = data.steps - lastDailySnapshot;
+        newDailySnapshot = data.steps;
+        newTotal = currentTotal + stepsToAdd;
+      }
     }
-    
-    // Calculate delta (new steps since last sync)
-    stepsToAdd = data.steps - currentTotal;
-    newTotal = data.steps; // Set to the absolute value from device
   } else {
     // INCREMENTAL MODE: Add steps directly (for manual entry)
     stepsToAdd = data.steps;
     newTotal = currentTotal + data.steps;
+    newDailySnapshot = lastDailySnapshot; // Don't update snapshot in manual mode
   }
 
   // Record submission with delta
@@ -265,12 +290,21 @@ export const submitUserSteps = async (
       ...data.deviceInfo,
       submissionMode: isAbsolute ? 'absolute' : 'incremental',
       deviceReportedTotal: isAbsolute ? data.steps : undefined,
-      previousTotal: currentTotal
+      previousTotal: currentTotal,
+      lastDailySnapshot: lastDailySnapshot,
+      lastSyncDate: lastSyncDate,
+      isNewDay: isAbsolute && (!lastSyncDate || lastSyncDate !== new Date().toISOString().split('T')[0])
     }
   });
 
-  // Update total
-  await updateParticipantSteps(participant.id, newTotal);
+  // Update total with daily tracking
+  const today = new Date().toISOString().split('T')[0];
+  await updateParticipantSteps(
+    participant.id, 
+    newTotal, 
+    isAbsolute ? newDailySnapshot : lastDailySnapshot,
+    today
+  );
 
   // Check for new badges (only thresholds newly reached in this submission)
   const newBadges: { name: string; icon: string; steps: number }[] = [];
