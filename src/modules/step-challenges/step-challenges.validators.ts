@@ -83,6 +83,26 @@ export const stepChallengeCreateSchema = z.object({
     .array(badgeThresholdSchema)
     .optional()
     .default([])
+    .refine(
+      (thresholds) => {
+        // Validate ascending order
+        for (let i = 0; i < thresholds.length - 1; i++) {
+          if (thresholds[i].steps >= thresholds[i + 1].steps) {
+            return false;
+          }
+        }
+        return true;
+      },
+      { message: 'Badge thresholds must be in ascending order by steps' }
+    )
+    .refine(
+      (thresholds) => {
+        // Validate unique step counts
+        const steps = thresholds.map(t => t.steps);
+        return steps.length === new Set(steps).size;
+      },
+      { message: 'Badge step thresholds must have unique step counts' }
+    )
 }).refine(
   (data) => new Date(data.startDate) < new Date(data.endDate),
   {
@@ -148,6 +168,28 @@ export const stepChallengeUpdateSchema = z.object({
   badgeThresholds: z
     .array(badgeThresholdSchema)
     .optional()
+    .refine(
+      (thresholds) => {
+        if (!thresholds) return true;
+        // Validate ascending order
+        for (let i = 0; i < thresholds.length - 1; i++) {
+          if (thresholds[i].steps >= thresholds[i + 1].steps) {
+            return false;
+          }
+        }
+        return true;
+      },
+      { message: 'Badge thresholds must be in ascending order by steps' }
+    )
+    .refine(
+      (thresholds) => {
+        if (!thresholds) return true;
+        // Validate unique step counts
+        const steps = thresholds.map(t => t.steps);
+        return steps.length === new Set(steps).size;
+      },
+      { message: 'Badge step thresholds must have unique step counts' }
+    )
 }).refine(
   (data) => {
     if (data.startDate && data.endDate) {

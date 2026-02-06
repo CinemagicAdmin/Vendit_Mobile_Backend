@@ -234,25 +234,19 @@ export const submitUserSteps = async (
   
   if (isAbsolute) {
     // ABSOLUTE MODE: data.steps = today's cumulative steps from health app
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+    // NOTE: Date comparison uses UTC. Days reset at midnight UTC, not user's local time.
+    // For users in non-UTC timezones, their "day" resets at UTC midnight converted to local.
+    // Example: India (UTC+5:30) users see day reset at 5:30 AM local time.
+    // To fully support local timezones, mobile app must send user timezone and we convert.
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD in UTC
     const isNewDay = !lastSyncDate || lastSyncDate !== today;
     
     if (isNewDay) {
       // NEW DAY DETECTED
-      // Health apps reset daily, so any value is valid for a new day
-      if (data.steps < lastDailySnapshot) {
-        // Confirmed: Daily reset occurred
-        // All steps from new day should be added
-        stepsToAdd = data.steps;
-        newDailySnapshot = data.steps;
-        newTotal = currentTotal + stepsToAdd;
-      } else {
-        // Edge case: Late sync from previous day
-        // Calculate delta from last snapshot
-        stepsToAdd = data.steps - lastDailySnapshot;
-        newDailySnapshot = data.steps;
-        newTotal = currentTotal + stepsToAdd;
-      }
+      // Health apps reset daily, so always use the full reported count for new day
+      stepsToAdd = data.steps;
+      newDailySnapshot = data.steps;
+      newTotal = currentTotal + stepsToAdd;
     } else {
       // SAME DAY SYNC
       if (data.steps <= lastDailySnapshot) {
@@ -303,7 +297,7 @@ export const submitUserSteps = async (
     participant.id, 
     newTotal, 
     isAbsolute ? newDailySnapshot : lastDailySnapshot,
-    today
+    isAbsolute ? today : (lastSyncDate || today)  // Don't change date in incremental mode
   );
 
   // Check for new badges (only thresholds newly reached in this submission)
@@ -317,19 +311,28 @@ export const submitUserSteps = async (
   for (const threshold of newlyReachedThresholds) {
     const hasBadge = await hasUserBadge(userId, challengeId, threshold.badge_name);
     if (!hasBadge) {
-      await createBadge({
-        userId,
-        challengeId,
-        badgeName: threshold.badge_name,
-        badgeType: 'steps',
-        badgeIcon: threshold.badge_icon,
-        stepsAchieved: newTotal
-      });
-      newBadges.push({
-        name: threshold.badge_name,
-        icon: threshold.badge_icon,
-        steps: threshold.steps
-      });
+      try {
+        await createBadge({
+          userId,
+          challengeId,
+          badgeName: threshold.badge_name,
+          badgeType: 'steps',
+          badgeIcon: threshold.badge_icon,
+          stepsAchieved: newTotal
+        });
+        newBadges.push({
+          name: threshold.badge_name,
+          icon: threshold.badge_icon,
+          steps: threshold.steps
+        });
+      } catch (error: any) {
+        // Ignore duplicate constraint violations from race conditions
+        // Two concurrent requests can both pass hasUserBadge check, but only one will insert
+        if (!error?.message?.includes('duplicate') && !error?.message?.includes('unique')) {
+          throw error; // Re-throw if it's not a duplicate error
+        }
+        // If duplicate, simply skip adding to newBadges (user already has it)
+      }
     }
   }
 
