@@ -1,5 +1,8 @@
--- Add user_profile to leaderboard response
--- Updates get_challenge_leaderboard function to include profile picture
+-- Add user_profile to leaderboard function
+-- The original function was missing this field in production
+
+-- Drop existing function first (required when changing return type)
+DROP FUNCTION IF EXISTS get_challenge_leaderboard(UUID, INT);
 
 CREATE OR REPLACE FUNCTION get_challenge_leaderboard(
   p_challenge_id UUID,
@@ -15,7 +18,7 @@ RETURNS TABLE(
 ) AS $$
 BEGIN
   RETURN QUERY
-  SELECT 
+  SELECT
     RANK() OVER (ORDER BY p.total_steps DESC) as rank,
     p.user_id,
     COALESCE(u.first_name || ' ' || u.last_name, 'Unknown') as user_name,
@@ -30,4 +33,4 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-COMMENT ON FUNCTION get_challenge_leaderboard(UUID, INT) IS 'Returns ranked leaderboard with user profiles for a challenge';
+COMMENT ON FUNCTION get_challenge_leaderboard(UUID, INT) IS 'Returns ranked leaderboard with user profile pictures for a challenge';
